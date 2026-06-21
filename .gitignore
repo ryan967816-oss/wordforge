@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+build/
+dist/
+*.egg-info/
+WordForge.app/
+# Note: data/lexicon.jsonl and data/reviews.jsonl are intentionally NOT ignored —
+# your learning history is meant to be git-versioned and diffable.

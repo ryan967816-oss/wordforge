@@ -1,0 +1,25 @@
+[project]
+name = "wordforge"
+version = "0.1.0"
+description = "Forge active (productive) English vocabulary — a macOS menu-bar trainer with Claude-grounded synonyms, antonyms, and spaced-repetition production drills."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.69",
+    "keyring>=24",
+    "rumps>=0.4.0",
+    "pynput>=1.7",
+]
+
+[project.scripts]
+wordforge = "wordforge.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["wordforge"]
+
+[tool.setuptools.package-data]
+wordforge = ["data/*.jsonl"]

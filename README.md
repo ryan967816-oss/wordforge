@@ -96,6 +96,22 @@ still works without it.
 ./.venv/bin/python -m wordforge.cli list
 ```
 
+## Writing trainer (Claude-graded essays)
+
+A sibling tool that practices *writing* against an academic rubric, grounded in
+your TOEFL prompts and California Edge writing projects:
+
+```
+./.venv/bin/python -m wordforge.writing prompts          # list prompts (incl. your TOEFL .md files)
+./.venv/bin/python -m wordforge.writing new tech-and-attention   # opens a draft to write in
+./.venv/bin/python -m wordforge.writing grade <draft.md> # 6-dimension rubric grade
+```
+
+Grades on task response / organization / development / grammar / vocabulary /
+mechanics (each 0–5), gives a CEFR + TOEFL estimate, quotes your own text in the
+fixes, rewrites your weakest paragraph as a model, and surfaces weak words to
+`add` to WordForge.
+
 ## Optional: standalone .app
 
 `build_app.command` builds `dist/WordForge.app` (Dock-less, add to Login Items)

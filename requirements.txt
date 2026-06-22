@@ -3,3 +3,4 @@ anthropic>=0.69        # Claude API (grounding + grading)
 keyring>=24            # store the API key in the macOS Keychain
 rumps>=0.4.0           # native macOS menu-bar app (pulls in pyobjc)
 pynput>=1.7            # global hotkey + capture-selected-word
+pywebview>=4  # native macOS window for the studio (run_native.command)

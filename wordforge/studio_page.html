@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WordForge Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: dark;
+    --ink-900:#0A0D12; --ink-700:#10141B; --ink-600:#141A22; --ink-400:#20272F;
+    --frost-100:#E8EEF5; --frost-300:#B7C0CD; --frost-400:#8A95A5; --frost-600:#5A6472;
+    --accent:#5B8FD6; --accent-press:#3C6196; --ice:#8FC0F0; --on-accent:#0A0D12;
+    --accent-wash:rgba(91,143,214,.12); --glow:rgba(143,192,240,.18);
+    --ok:#5FB89B; --warn:#C9A66B; --err:#D6798A; --ok-wash:rgba(95,184,155,.12); --err-wash:rgba(214,121,138,.12);
+    --glass-window:rgba(13,17,23,.62); --glass-titlebar:rgba(22,28,37,.55);
+    --glass-sidebar:rgba(16,20,27,.52); --glass-card:rgba(24,30,39,.50); --glass-raised:rgba(30,38,48,.58);
+    --glass-well:rgba(8,11,16,.42); --edge:rgba(255,255,255,.09); --edge-2:rgba(255,255,255,.14); --hl:rgba(255,255,255,.06);
+    --blur:blur(30px) saturate(1.4);
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    --serif:"Spectral",Newsreader,Georgia,serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+    --dur:120ms; --ease:cubic-bezier(.2,0,.2,1);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; font:400 15px/1.55 var(--sans); color:var(--frost-100);
+    background:var(--ink-900);
+    background-image:
+      radial-gradient(120% 80% at 18% -10%, rgba(79,208,192,.14), transparent 55%),
+      radial-gradient(120% 70% at 60% -20%, rgba(111,227,168,.10), transparent 50%),
+      radial-gradient(140% 90% at 88% -10%, rgba(124,143,224,.15), transparent 55%),
+      radial-gradient(120% 60% at 50% 120%, rgba(91,143,214,.12), transparent 60%);
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;
+  }
+  button,input,select,textarea{font:inherit;color:inherit;}
+
+  /* ---------- titlebar (native frameless drag area) ---------- */
+  .titlebar{
+    height:40px; display:flex; align-items:center; padding:0 14px; position:relative;
+    background:var(--glass-titlebar); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+    border-bottom:1px solid var(--edge); box-shadow:inset 0 1px 0 var(--hl);
+    -webkit-user-select:none; user-select:none;
+  }
+  .lights{display:flex; gap:8px; align-items:center; z-index:2;}
+  .tl{width:12px; height:12px; border-radius:50%; border:.5px solid rgba(0,0,0,.25); cursor:default;}
+  .tl-close{background:#ff5f57;} .tl-min{background:#febc2e;} .tl-zoom{background:#28c840;}
+  .title{position:absolute; left:0; right:0; text-align:center; pointer-events:none;
+    font:500 13px var(--sans); color:var(--frost-600); letter-spacing:.01em;}
+
+  /* ---------- shell ---------- */
+  .app{display:grid; grid-template-columns:224px minmax(0,1fr); height:calc(100vh - 40px);}
+  .side{
+    background:var(--glass-sidebar); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+    border-right:1px solid var(--edge); box-shadow:inset 1px 0 0 var(--hl);
+    padding:16px 12px; display:flex; flex-direction:column; gap:16px; overflow:hidden;
+  }
+  .brand{display:flex; align-items:center; gap:10px; padding:4px 8px 0;
+    font:600 18px var(--sans); letter-spacing:-.01em; color:var(--frost-100);}
+  .brand svg{width:26px; height:26px; flex:none;}
+  .nav{display:flex; flex-direction:column; gap:4px;}
+  .nav button{
+    display:flex; align-items:center; gap:10px; width:100%; text-align:left; height:38px;
+    padding:0 12px; border-radius:5px; border:1px solid transparent; border-left:2px solid transparent;
+    background:transparent; color:var(--frost-400); font:400 14px var(--sans); cursor:pointer;
+    transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  .nav button svg{width:17px; height:17px; flex:none; color:var(--frost-600);}
+  .nav button:hover{background:rgba(255,255,255,.05); color:var(--frost-100);}
+  .nav button.active{background:rgba(255,255,255,.10); color:var(--frost-100); font-weight:500; border-left-color:var(--ice);}
+  .nav button.active svg{color:var(--ice);}
+  .spacer{flex:1;}
+  .forge{margin:0 4px; padding:10px 12px; border-radius:7px; border:1px solid var(--edge); background:var(--glass-well);}
+  .forge .lbl{display:flex; align-items:center; gap:8px; margin-bottom:4px;
+    font:500 12px var(--sans); letter-spacing:.04em; text-transform:uppercase; color:var(--frost-600);}
+  .forge .lbl svg{width:14px; height:14px; color:var(--accent);}
+  .forge p{margin:0; font:400 13px/1.5 var(--sans); color:var(--frost-400);}
+
+  .main{min-width:0; overflow-y:auto; padding:28px 32px 56px;}
+  .wrap{max-width:880px; margin:0 auto;}
+  .view{display:none; animation:fade .2s var(--ease) both;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @keyframes pulse{0%,100%{opacity:.45;} 50%{opacity:1;}}
+
+  h1{margin:0 0 18px; font:600 22px var(--sans); color:var(--frost-100);}
+  .bar{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
+  .bar h1{margin:0;}
+  .muted{color:var(--frost-400);}
+  .eyebrow{font:500 12px var(--sans); letter-spacing:.04em; text-transform:uppercase; color:var(--frost-600);}
+
+  /* ---------- buttons ---------- */
+  button.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; height:36px;
+    padding:0 14px; border:1px solid transparent; border-radius:5px; background:var(--accent);
+    color:var(--on-accent); font:500 14px var(--sans); cursor:pointer;
+    transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease);}
+  button.btn:hover{background:var(--ice);}
+  button.btn:active{background:var(--accent-press);}
+  button.btn.secondary{background:var(--glass-raised); color:var(--frost-100); border-color:var(--edge); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);}
+  button.btn.secondary:hover{border-color:var(--edge-2); background:rgba(255,255,255,.08);}
+  button.btn.ghost{background:transparent; color:var(--frost-400);}
+  button.btn.ghost:hover{background:rgba(255,255,255,.05); color:var(--frost-100);}
+  button.btn:disabled{opacity:.55; cursor:wait;}
+  .spin{width:13px; height:13px; border-radius:50%; border:2px solid currentColor; border-top-color:transparent; animation:spin .7s linear infinite;}
+
+  /* ---------- inputs ---------- */
+  input,select,textarea{width:100%; background:var(--glass-well); border:1px solid var(--edge);
+    border-radius:5px; padding:9px 11px; outline:none; color:var(--frost-100);
+    transition:border-color var(--dur) var(--ease);}
+  textarea{resize:vertical; line-height:1.55;}
+  textarea.serif{font:400 17px/1.6 var(--serif);}
+  input:focus,select:focus,textarea:focus{border-color:var(--ice);}
+  select{appearance:none; -webkit-appearance:none; cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 3.5L5 6.5L8 3.5' stroke='%235A6472' stroke-width='1.3' fill='none' stroke-linecap='round'/></svg>");
+    background-repeat:no-repeat; background-position:right 11px center; padding-right:30px;}
+
+  /* ---------- cards & atoms ---------- */
+  .card{background:var(--glass-card); border:1px solid var(--edge); border-radius:7px; padding:16px;
+    box-shadow:inset 0 1px 0 var(--hl); margin-bottom:14px;}
+  .card h2{margin:0 0 12px; font:600 12px var(--sans); letter-spacing:.04em; text-transform:uppercase; color:var(--frost-600);}
+  .row{display:flex; gap:10px; align-items:flex-end;}
+  .row .grow{flex:1; min-width:0;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start;}
+  .metrics{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px;}
+  .metric{background:var(--glass-raised); border:1px solid var(--edge); border-radius:7px; padding:12px 14px;
+    min-height:72px; display:flex; flex-direction:column; justify-content:center; gap:4px; box-shadow:inset 0 1px 0 var(--hl);}
+  .metric b{font:500 26px/1 var(--mono); font-variant-numeric:tabular-nums; color:var(--frost-100);}
+  .metric.accent b{color:var(--accent);} .metric.ok b{color:var(--ok);}
+  .metric span{font:500 12px var(--sans); letter-spacing:.04em; text-transform:uppercase; color:var(--frost-600);}
+
+  .pill{display:inline-flex; align-items:center; padding:3px 8px; border-radius:3px; font:500 12px var(--sans);
+    background:var(--ink-400); color:var(--frost-300);}
+  .pill.accent{background:var(--accent-wash); color:var(--accent);}
+  .pill.warn{background:rgba(201,166,107,.12); color:var(--warn);}
+  .tag{font:600 11px var(--sans); letter-spacing:.04em; text-transform:uppercase; color:var(--frost-600);}
+
+  .status{min-height:20px; margin-top:8px; font:400 13px var(--sans); color:var(--frost-400);}
+  .status.err{color:var(--err);}
+  .status.think{color:var(--frost-400); animation:pulse 1.4s ease-in-out infinite;}
+
+  .prompt{margin:0 0 12px; font:400 15px/1.55 var(--sans); color:var(--frost-300);}
+  .options{display:grid; gap:8px; margin:4px 0;}
+  .options button{text-align:left; padding:10px 12px; border-radius:5px; border:1px solid var(--edge);
+    background:var(--glass-well); color:var(--frost-100); font:400 15px var(--sans); cursor:pointer;
+    transition:border-color var(--dur) var(--ease), background var(--dur) var(--ease);}
+  .options button:hover{border-color:var(--ice);}
+  .options button .n{color:var(--frost-600); font-variant-numeric:tabular-nums; margin-right:8px;}
+  .options button.correct{border-color:var(--ok); background:var(--ok-wash);}
+  .options button.wrong{border-color:var(--err); background:var(--err-wash);}
+
+  .feedback{border-radius:7px; padding:12px 14px; margin-top:12px; display:flex; flex-direction:column; gap:6px;
+    animation:fade .2s var(--ease) both;}
+  .feedback.ok{border:1px solid var(--ok); background:var(--ok-wash);}
+  .feedback.err{border:1px solid var(--err); background:var(--err-wash);}
+  .feedback b{font:600 14px var(--sans);} .feedback.ok b{color:var(--ok);} .feedback.err b{color:var(--err);}
+  .feedback .body{font:400 14px/1.55 var(--sans); color:var(--frost-300);}
+
+  /* ---------- expression ladder ---------- */
+  .ladder-q{display:flex; gap:10px; align-items:flex-start; margin-bottom:6px;}
+  .ladder-q p{margin:0; font:italic 400 16px/1.5 var(--serif); color:var(--frost-300);}
+  .rung{display:grid; grid-template-columns:auto 1fr; gap:14px; padding:14px 0; border-top:1px solid var(--edge);}
+  .rung .rail{display:flex; flex-direction:column; align-items:center; gap:6px; padding-top:2px;}
+  .rung .idx{width:22px; height:22px; border-radius:50%; display:grid; place-items:center; flex:none;
+    font:500 12px var(--mono); color:var(--accent); background:var(--accent-wash); border:1px solid var(--accent);}
+  .rung.peak .idx{color:var(--on-accent); background:var(--accent); border:0;}
+  .rung .line{flex:1; width:1px; background:var(--edge);}
+  .rung .kind{display:flex; gap:8px; align-items:baseline; margin-bottom:6px;}
+  .rung .render{margin:0 0 8px; font:400 20px/1.45 var(--serif); color:var(--frost-100);}
+  .rung.peak .render{font:500 24px/1.4 var(--serif);}
+  .rung .metaline{margin:0; font:italic 400 14px/1.5 var(--serif); color:var(--frost-400);}
+  .rung .metaline b{font-style:normal; font-weight:600; color:var(--frost-400);}
+  .serif-lead{font:400 19px/1.6 var(--serif); color:var(--frost-100);}
+
+  /* ---------- reader ---------- */
+  audio{width:100%; margin-top:12px;}
+  #transcript{margin-top:0;}
+  .seg{display:flex; gap:12px; padding:8px 12px; margin:2px 0; border-radius:5px;
+    border-left:2px solid transparent; cursor:pointer; transition:background var(--dur) var(--ease);}
+  .seg:hover{background:rgba(255,255,255,.05);}
+  .seg.active{background:var(--glow); border-left-color:var(--ice);}
+  .seg .time{font:400 13px/1.6 var(--mono); font-variant-numeric:tabular-nums; color:var(--frost-600); flex:none;}
+  .seg.active .time{color:var(--ice);}
+  .seg .txt{font:400 15px/1.6 var(--sans); color:var(--frost-400);}
+  .seg.active .txt{color:var(--frost-100);}
+
+  /* ---------- lists (stats / writing) ---------- */
+  .list .item{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 2px; border-bottom:1px solid var(--edge);}
+  .list .item b{font:500 15px var(--sans); color:var(--frost-100);}
+  .list .item .sub{font:400 12px var(--sans); color:var(--frost-600);}
+  .band{display:inline-flex; gap:3px;}
+  .band i{width:6px; height:14px; border-radius:1px; background:var(--ink-400);}
+  .band i.on{background:var(--accent);}
+  .dims{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .dim{border:1px solid var(--edge); border-radius:5px; padding:10px 12px; background:var(--glass-raised);}
+  .dim .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .dim .top b{font:500 13px var(--sans);}
+  .dim p{margin:0; font:400 13px/1.5 var(--sans); color:var(--frost-400);}
+  .fix{border-left:2px solid var(--warn); padding-left:12px; margin-bottom:12px;}
+  .fix b{font:600 14px var(--sans); color:var(--frost-100);}
+  .fix .quote{margin:4px 0; font:italic 400 14px/1.5 var(--serif); color:var(--frost-400);}
+  .fix p{margin:0; font:400 14px/1.5 var(--sans); color:var(--frost-300);}
+
+  @media (max-width:840px){
+    .app{grid-template-columns:1fr; height:auto;}
+    .side{flex-direction:row; flex-wrap:wrap; height:auto; border-right:0; border-bottom:1px solid var(--edge);}
+    .nav{flex-direction:row; flex:1; flex-wrap:wrap;}
+    .nav button{flex:1; justify-content:center; border-left:0; border-bottom:2px solid transparent;}
+    .nav button.active{border-left:0; border-bottom-color:var(--ice);}
+    .spacer,.forge{display:none;}
+    .grid,.metrics,.dims{grid-template-columns:1fr;}
+    .main{padding:18px 14px 48px;}
+  }
+</style>
+</head>
+<body>
+  <div class="titlebar" id="titlebar">
+    <div class="lights">
+      <span class="tl tl-close" id="tlClose" title="Close"></span>
+      <span class="tl tl-min" id="tlMin" title="Minimize"></span>
+      <span class="tl tl-zoom" title="Zoom"></span>
+    </div>
+    <div class="title">WordForge — Studio</div>
+  </div>
+
+  <div class="app">
+    <aside class="side">
+      <div class="brand">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g stroke="#1E2730" stroke-width="0.75" stroke-linejoin="round">
+            <polygon points="32,4 50,20 32,30" fill="#5B8FD6"/>
+            <polygon points="32,4 14,20 32,30" fill="#3C6196"/>
+            <polygon points="14,20 32,30 24,54" fill="#28323D"/>
+            <polygon points="50,20 32,30 40,54" fill="#1E2730"/>
+            <polygon points="32,30 40,54 24,54" fill="#8FC0F0"/>
+          </g>
+        </svg>
+        WordForge
+      </div>
+      <nav class="nav" id="nav">
+        <button class="active" data-view="vocab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>Vocab</button>
+        <button data-view="express">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/></svg>Expression</button>
+        <button data-view="reader">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2M6 8v8M10 5v14M14 9v6M18 6v12M22 12h0"/></svg>Reader</button>
+        <button data-view="writing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Writing</button>
+        <button data-view="stats">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-5M12 16V8M17 16v-3"/></svg>Stats</button>
+      </nav>
+      <div class="spacer"></div>
+      <div class="forge">
+        <div class="lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A4.5 4.5 0 0 0 15 9c0-3-3-5-3-7 0 0-1 1-1 3 0-2-2-4-2-4S5 4 5 9a4.5 4.5 0 0 0 3.5 5.5Z"/></svg>Daily forge</div>
+        <p id="forgeNote">Keep drilling the weakest until you stop.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="wrap">
+        <!-- VOCAB -->
+        <section id="vocab" class="view active">
+          <div class="bar"><h1>Vocab Drill</h1><button class="btn ghost" onclick="refreshAll()">Refresh</button></div>
+          <div class="metrics" id="vocabMetrics"></div>
+          <div class="grid">
+            <div class="card">
+              <h2>Add a word</h2>
+              <div class="row">
+                <input class="grow" id="addTerm" placeholder="perfunctory">
+                <button class="btn" id="addBtn" onclick="addWord()">Add</button>
+              </div>
+              <div id="addStatus" class="status"></div>
+            </div>
+            <div class="card">
+              <h2>Next drill</h2>
+              <div id="drillBox" class="muted">Loading…</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- EXPRESSION -->
+        <section id="express" class="view">
+          <h1>Expression Ladder</h1>
+          <div class="card">
+            <div class="eyebrow" style="margin-bottom:8px">A plain thought</div>
+            <textarea id="thought" rows="2" placeholder="his eyes are blue and striking"></textarea>
+            <div style="margin-top:12px; display:flex; align-items:center; gap:12px">
+              <button class="btn" id="ladderBtn" onclick="showLadder()">Show ladder</button>
+              <div id="ladderStatus" class="status" style="margin:0"></div>
+            </div>
+          </div>
+          <div id="ladderOut"></div>
+          <div id="attemptBox" class="card" style="display:none">
+            <h2>Your version</h2>
+            <textarea id="attempt" class="serif" rows="2"></textarea>
+            <div style="margin-top:12px"><button class="btn secondary" id="gradeExprBtn" onclick="gradeExpression()">Grade</button></div>
+            <div id="exprGrade"></div>
+          </div>
+        </section>
+
+        <!-- READER -->
+        <section id="reader" class="view">
+          <h1>Listening Reader</h1>
+          <div class="card">
+            <div class="row">
+              <select class="grow" id="audioFile"></select>
+              <button class="btn secondary" onclick="openPdfFolder()">Open folder</button>
+            </div>
+            <audio id="audio" controls preload="none"></audio>
+            <div id="readerStatus" class="status"></div>
+          </div>
+          <div class="card"><h2>Transcript — click a line to seek</h2><div id="transcript"></div></div>
+        </section>
+
+        <!-- WRITING -->
+        <section id="writing" class="view">
+          <h1>Writing</h1>
+          <div class="card">
+            <div class="eyebrow" style="margin-bottom:8px">Prompt</div>
+            <select id="promptSelect" style="margin-bottom:12px"></select>
+            <textarea id="essay" rows="12" placeholder="Write your essay here…"></textarea>
+            <div style="margin-top:12px"><button class="btn" id="gradeEssayBtn" onclick="gradeEssay()">Grade essay</button></div>
+            <div id="writingStatus" class="status"></div>
+          </div>
+          <div id="writingOut"></div>
+        </section>
+
+        <!-- STATS -->
+        <section id="stats" class="view">
+          <div class="bar"><h1>Stats</h1><button class="btn ghost" onclick="refreshStats()">Refresh</button></div>
+          <div class="metrics" id="statsMetrics"></div>
+          <div class="grid">
+            <div class="card"><h2>Weak words</h2><div class="list" id="weakWords"></div></div>
+            <div class="card"><h2>Recent mistakes</h2><div class="list" id="mistakes"></div></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let currentThought = "", currentDrill = null, currentSegs = [];
+
+function esc(t){return String(t ?? "").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function setBusy(id,busy){const el=$(id); if(!el)return; el.disabled=busy;
+  if(busy){el.dataset.label=el.textContent; el.innerHTML='<span class="spin"></span>'+el.dataset.label;}
+  else if(el.dataset.label){el.textContent=el.dataset.label;}}
+function fmt(ms){const s=Math.floor(ms/1000); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");}
+
+/* ---- API layer: real fetch when served by wordforge; canned data in preview ---- */
+const PREVIEW = location.protocol === "file:" || new URLSearchParams(location.search).has("preview");
+async function api(path, opts={}){
+  if (PREVIEW) return previewApi(path, opts);
+  const r = await fetch(path, opts);
+  const data = await r.json();
+  if(!r.ok || data.error) throw new Error(data.error || ("HTTP "+r.status));
+  return data;
+}
+
+function showView(name){
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id===name));
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active", b.dataset.view===name));
+  try{localStorage.setItem("wf-view", name);}catch(e){}
+  if(name==="stats") refreshStats();
+}
+$("nav").addEventListener("click",(e)=>{const b=e.target.closest("button[data-view]"); if(b) showView(b.dataset.view);});
+
+async function refreshAll(){await Promise.allSettled([refreshStats(), loadDrill()]);}
+function metricHtml(s){
+  return [["total_words","words",""],["due_now","due now","accent"],["reviewed_today","reviewed today",""],["avg_production_score","avg production","ok"]]
+    .map(([k,label,tone])=>`<div class="metric ${tone}"><b>${esc(s[k])}</b><span>${label}</span></div>`).join("");
+}
+async function refreshStats(){
+  const d = await api("/api/stats");
+  $("vocabMetrics").innerHTML = metricHtml(d.stats);
+  $("statsMetrics").innerHTML = metricHtml(d.stats);
+  $("forgeNote").textContent = (d.stats.due_now||0)+" due now · keep drilling the weakest until you stop.";
+  $("weakWords").innerHTML = d.weak_words.length
+    ? d.weak_words.map(w=>`<div class="item"><div><b>${esc(w.headword)}</b><div class="sub">score ${esc(w.production_score)} · due ${esc(w.due)}</div></div><span class="pill warn">${esc(w.lapses)} misses</span></div>`).join("")
+    : `<div class="muted" style="padding:10px 2px">No misses yet.</div>`;
+  $("mistakes").innerHTML = d.recent_mistakes.length
+    ? d.recent_mistakes.map(m=>`<div class="item"><div><b>${esc(m.headword)}</b><div class="sub" style="font-family:var(--mono)">${esc(m.ts||"")}</div></div><span class="tag">${esc(m.kind||"review")}</span></div>`).join("")
+    : `<div class="muted" style="padding:10px 2px">No recent wrong answers.</div>`;
+}
+async function addWord(){
+  const term=$("addTerm").value.trim(); if(!term)return;
+  $("addStatus").className="status think"; $("addStatus").textContent="Grounding via Claude…"; setBusy("addBtn",true);
+  try{
+    const d=await api("/api/add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({term})});
+    $("addStatus").className="status"; $("addStatus").textContent=(d.created?"Added ":"Updated ")+d.word.headword+".";
+    $("addTerm").value=""; await refreshAll();
+  }catch(e){$("addStatus").className="status err"; $("addStatus").textContent=e.message;}
+  finally{setBusy("addBtn",false);}
+}
+async function loadDrill(){
+  const box=$("drillBox"); const d=await api("/api/drill"); currentDrill=d.empty?null:d;
+  if(d.empty){box.innerHTML=`<span class="muted">${esc(d.message)}</span>`; return;}
+  const opts=(d.drill.options||[]).map((o,i)=>`<button data-opt="${esc(o)}" onclick="answerDrill('${i+1}',this)"><span class="n">${i+1}</span>${esc(o)}</button>`).join("");
+  box.innerHTML=`
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><span class="tag">${esc(d.drill.kind||"drill")}</span><span class="muted" style="font-size:12px">· ${esc(d.headword)} · ${esc(d.practice?"extra practice":"scheduled")}</span></div>
+    <div class="prompt">${esc(d.drill.prompt)}</div>
+    ${opts?`<div class="options">${opts}</div>`:`<input id="drillAnswer" placeholder="type the answer" style="margin-bottom:8px"><button class="btn" onclick="answerDrill($('drillAnswer').value)">Submit</button>`}
+    <div id="drillResult"></div>`;
+}
+async function answerDrill(answer,btn){
+  if(!currentDrill || !String(answer).trim())return;
+  const d=await api("/api/drill/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...currentDrill,answer})});
+  document.querySelectorAll(".options button").forEach(b=>{
+    b.onclick=null;
+    if(b.dataset.opt===d.answer) b.classList.add("correct");
+    else if(b===btn && !d.correct) b.classList.add("wrong");
+  });
+  $("drillResult").innerHTML=`<div class="feedback ${d.correct?"ok":"err"}"><b>${d.correct?"Correct":"Try again"}</b><div class="body">${esc(d.explanation||"")}</div></div>
+    <div style="margin-top:10px"><button class="btn secondary" onclick="loadDrill()">Next drill</button></div>`;
+  refreshStats();
+}
+
+async function showLadder(){
+  currentThought=$("thought").value.trim(); if(!currentThought)return;
+  $("ladderStatus").className="status think"; $("ladderStatus").textContent="Climbing plain → metaphor…";
+  $("ladderOut").innerHTML=""; setBusy("ladderBtn",true);
+  try{
+    const d=await api("/api/expression/ladder",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({thought:currentThought})});
+    $("ladderStatus").textContent="";
+    const last=d.rungs.length-1;
+    $("ladderOut").innerHTML=`<div class="card">
+      <div class="ladder-q"><span class="tag" style="color:var(--accent)">feeling</span><p>${esc(d.feeling_question)}</p></div>
+      ${d.rungs.map((r,i)=>`<div class="rung ${i===last?"peak":""}">
+        <div class="rail"><span class="idx">${i+1}</span>${i<last?'<span class="line"></span>':''}</div>
+        <div><div class="kind"><span class="tag">${esc(r.kind)}</span><span class="muted" style="font-size:12px">· ${esc(r.register)}</span></div>
+        <p class="render">${esc(r.rendering)}</p>
+        <p class="metaline"><b>image</b> ${esc(r.image)} &nbsp;·&nbsp; <b>feeling</b> ${esc(r.connotation)}</p></div>
+      </div>`).join("")}
+      <p class="muted" style="margin:12px 0 0;font-size:13px">${esc(d.note)}</p></div>`;
+    $("attemptBox").style.display="block";
+  }catch(e){$("ladderStatus").className="status err"; $("ladderStatus").textContent=e.message;}
+  finally{setBusy("ladderBtn",false);}
+}
+async function gradeExpression(){
+  const attempt=$("attempt").value.trim(); if(!attempt)return;
+  $("exprGrade").innerHTML=`<div class="status think" style="margin-top:12px">Grading…</div>`; setBusy("gradeExprBtn",true);
+  try{
+    const d=await api("/api/expression/grade",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({thought:currentThought,attempt})});
+    $("exprGrade").innerHTML=`<div style="margin-top:14px;display:grid;gap:12px">
+      <div class="dims" style="grid-template-columns:repeat(3,1fr)">
+        ${[["Image apt",d.image_apt],["Connotation",d.connotation_match],["Fluency",d.fluency]].map(([k,v])=>`<div class="dim"><div class="eyebrow" style="margin-bottom:6px">${k}</div><div>${esc(v)}</div></div>`).join("")}
+      </div>
+      <div style="display:flex;align-items:baseline;gap:10px"><span style="font:500 22px var(--mono);color:var(--accent)">${esc(d.score)}</span><span class="muted">${esc(d.feedback)}</span></div>
+      <div style="border-top:1px solid var(--edge);padding-top:12px"><div class="eyebrow" style="color:var(--accent);margin-bottom:8px">Sharper</div><p class="serif-lead" style="margin:0">${esc(d.better_version)}</p></div>
+    </div>`;
+  }catch(e){$("exprGrade").innerHTML=`<div class="feedback err" style="margin-top:12px"><div class="body">${esc(e.message)}</div></div>`;}
+  finally{setBusy("gradeExprBtn",false);}
+}
+
+async function loadAudioList(){
+  const files=await api("/api/listening/list");
+  if(!files.length){$("audioFile").innerHTML=""; $("readerStatus").textContent="No audio found. Set WORDFORGE_LISTENING_DIR or install the Edge audio library."; return;}
+  $("audioFile").innerHTML=files.map(f=>`<option value="${f.i}">${esc(f.name)}</option>`).join("");
+  loadTranscript(0);
+}
+async function loadTranscript(i){
+  $("audio").src="/api/listening/audio?i="+i; $("transcript").innerHTML="";
+  $("readerStatus").className="status"; $("readerStatus").textContent="Transcribing if needed…";
+  try{
+    currentSegs=await api("/api/listening/transcript?i="+i); $("readerStatus").textContent="";
+    $("transcript").innerHTML=currentSegs.map((s,k)=>`<div class="seg" data-k="${k}" data-start="${s.start_ms/1000}"><span class="time">${fmt(s.start_ms)}</span><span class="txt">${esc(s.text)}</span></div>`).join("");
+    document.querySelectorAll(".seg").forEach(el=>{el.onclick=()=>{$("audio").currentTime=+el.dataset.start; $("audio").play();};});
+  }catch(e){$("readerStatus").className="status err"; $("readerStatus").textContent=e.message;}
+}
+$("audioFile").onchange=()=>loadTranscript(+$("audioFile").value);
+$("audio").ontimeupdate=()=>{
+  const t=$("audio").currentTime*1000; let active=-1;
+  for(let k=0;k<currentSegs.length;k++){if(t>=currentSegs[k].start_ms && t<currentSegs[k].end_ms){active=k;break;}}
+  document.querySelectorAll(".seg").forEach(el=>{
+    const on=+el.dataset.k===active;
+    if(on && !el.classList.contains("active")){el.classList.add("active"); el.scrollIntoView({block:"center",behavior:"smooth"});}
+    if(!on) el.classList.remove("active");
+  });
+};
+async function openPdfFolder(){try{await api("/api/listening/pdf?i="+$("audioFile").value);}catch(e){}}
+
+async function loadPrompts(){
+  const prompts=await api("/api/writing/prompts");
+  $("promptSelect").innerHTML=prompts.map(p=>`<option value="${esc(p.id)}">${esc(p.id)} — ${esc(p.preview)}</option>`).join("");
+}
+function bandHtml(n){return `<span class="band">${[1,2,3,4,5].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</span>`;}
+async function gradeEssay(){
+  const promptId=$("promptSelect").value; const essay=$("essay").value.trim();
+  if(essay.split(/\s+/).filter(Boolean).length<20){$("writingStatus").className="status err"; $("writingStatus").textContent="Write at least 20 words first."; return;}
+  $("writingStatus").className="status think"; $("writingStatus").textContent="Grading via Claude…"; $("writingOut").innerHTML=""; setBusy("gradeEssayBtn",true);
+  try{
+    const d=await api("/api/writing/grade",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt_id:promptId,essay})});
+    $("writingStatus").textContent="";
+    $("writingOut").innerHTML=`
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <span style="font:500 15px var(--sans)">${esc(d.level_estimate)}</span>
+          <span style="display:flex;align-items:center;gap:8px">${bandHtml(d.overall_band)}<span style="font:500 14px var(--mono);color:var(--accent)">${esc(d.overall_band)}/5</span></span>
+        </div>
+        <div class="dims">${d.dimensions.map(x=>`<div class="dim"><div class="top"><b>${esc(x.name)}</b>${bandHtml(x.band)}</div><p>${esc(x.comment)}</p></div>`).join("")}</div>
+      </div>
+      <div class="card"><h2>Top fixes</h2>${d.priority_fixes.map(x=>`<div class="fix"><b>${esc(x.issue)}</b><p class="quote">“${esc(x.from_your_text)}”</p><p>${esc(x.how_to_fix)}</p></div>`).join("")}</div>
+      <div class="card"><h2>Model paragraph</h2><p class="serif-lead">${esc(d.model_paragraph)}</p>
+        <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="muted" style="font-size:13px">Words to study:</span>${(d.weak_words||[]).map(w=>`<span class="pill accent">${esc(w)}</span>`).join("")}</div></div>`;
+  }catch(e){$("writingStatus").className="status err"; $("writingStatus").textContent=e.message;}
+  finally{setBusy("gradeEssayBtn",false);}
+}
+
+/* ---- native frameless window controls (pywebview) ---- */
+function nativeReady(){return !!(window.pywebview && pywebview.api);}
+$("tlClose").onclick=()=>{ if(nativeReady() && pywebview.api.close) pywebview.api.close(); };
+$("tlMin").onclick=()=>{ if(nativeReady() && pywebview.api.minimize) pywebview.api.minimize(); };
+
+/* ---- boot ---- */
+(function boot(){
+  const saved = (()=>{try{return localStorage.getItem("wf-view");}catch(e){return null;}})();
+  if(saved) showView(saved);
+  loadPrompts().catch(()=>{}); loadAudioList().catch(()=>{}); refreshAll().catch(()=>{});
+})();
+
+/* ============================================================
+   PREVIEW data — only used when opened as a file or with ?preview.
+   The real app never reaches this; it hits the live API above.
+   ============================================================ */
+async function previewApi(path, opts){
+  await new Promise(r=>setTimeout(r, 380)); // feel the latency
+  const body = opts && opts.body ? JSON.parse(opts.body) : {};
+  if(path==="/api/stats") return {stats:{total_words:6,due_now:4,reviewed_today:11,avg_production_score:3.2},
+    weak_words:[{headword:"equivocate",lapses:3,production_score:1,due:"2026-06-23"},{headword:"capricious",lapses:2,production_score:2,due:"2026-06-22"},{headword:"trenchant",lapses:1,production_score:3,due:"2026-06-25"}],
+    recent_mistakes:[{headword:"equivocate",kind:"discrimination",ts:"2026-06-22 09:14"},{headword:"ameliorate",kind:"antonym",ts:"2026-06-21 20:02"}]};
+  if(path==="/api/drill") return {empty:false,headword:"perfunctory",practice:false,
+    drill:{kind:"discrimination",prompt:"In a formal review, you fault praise that is done only as a duty, without real attention. The praise was merely ___.",options:["perfunctory","thorough","lavish","sincere"],answer:"perfunctory",explanation:"Perfunctory is the duty-without-care option; thorough and sincere are opposites, and lavish means excessive."}};
+  if(path==="/api/drill/answer"){const correct=String(body.answer)==="1"||String(body.answer).toLowerCase()==="perfunctory";
+    return {correct,answer:"perfunctory",explanation:"Cursory stresses haste; perfunctory stresses dutiful indifference."};}
+  if(path==="/api/add") return {created:true,word:{headword:(body.term||"word")}};
+  if(path==="/api/expression/ladder") return {feeling_question:"Is the feeling cold admiration, or warm tenderness? The image you choose carries it.",
+    note:"Each rung keeps the same fact and raises only the figure — plain to embedded scene.",
+    rungs:[{kind:"plain",register:"neutral",rendering:"His eyes are very blue.",image:"a stated fact",connotation:"flat, unfelt"},
+      {kind:"precise adjective",register:"neutral",rendering:"His eyes are a glacial, arresting blue.",image:"ice",connotation:"cold clarity"},
+      {kind:"simile",register:"literary",rendering:"His eyes are like sapphires set in frost.",image:"a cut gemstone",connotation:"precious, distant"},
+      {kind:"metaphor",register:"literary",rendering:"His eyes were two chips of sapphire, catching the last winter light.",image:"a cut gemstone in low sun",connotation:"cold beauty that keeps its distance"}]};
+  if(path==="/api/expression/grade") return {score:"8.4 / 10",image_apt:"strong",connotation_match:"matched — cold, distant",fluency:"natural",
+    feedback:"The sapphire image lands the coldness; trim ‘really’ to keep the line precise.",better_version:"Her gaze held the flat blue of a winter sky — beautiful, and entirely unwarming."};
+  if(path==="/api/listening/list") return [{i:0,name:"Edge Unit 4 — Attention & the Glacier"},{i:1,name:"Edge Unit 5 — Memory & the Frozen River"}];
+  if(path.startsWith("/api/listening/transcript")) return [
+    {start_ms:0,end_ms:11000,text:"The lake had frozen overnight, edge to edge, without a sound."},
+    {start_ms:11000,end_ms:24000,text:"By first light it held the whole sky in a single, unbroken sheet."},
+    {start_ms:24000,end_ms:39000,text:"Nothing moved on it but the slow blue glow of the deep ice."},
+    {start_ms:39000,end_ms:55000,text:"A heron stood at the margin, perfunctory, unimpressed by the cold."}];
+  if(path.startsWith("/api/listening/pdf")) return {ok:true};
+  if(path==="/api/writing/prompts") return [{id:"tech-attention",preview:"Does constant connectivity sharpen or erode focus?"},{id:"city-nature",preview:"Can a planned city stay humane?"}];
+  if(path==="/api/writing/grade") return {level_estimate:"C1 · TOEFL ~27",overall_band:4,
+    dimensions:[{name:"Task response",band:4,comment:"Answers the prompt directly; thesis is clear by the second sentence."},
+      {name:"Organization",band:4,comment:"Clean paragraphing; one transition leans on ‘also’ twice."},
+      {name:"Development",band:3,comment:"Strong claims, thin evidence in the second body paragraph."},
+      {name:"Grammar",band:4,comment:"Few slips; watch the comma splice in line 6."},
+      {name:"Vocabulary",band:4,comment:"Precise and varied; ‘perfunctory’ is used well, in register."},
+      {name:"Mechanics",band:5,comment:"Clean punctuation and spelling throughout."}],
+    priority_fixes:[{issue:"Comma splice",from_your_text:"Cities grow fast, they forget the people in them.",how_to_fix:"Use a semicolon or ‘and’."},
+      {issue:"Unsupported claim",from_your_text:"Everyone is more distracted than ever.",how_to_fix:"Anchor it with a study, a number, or a concrete scene."}],
+    model_paragraph:"A city is not humane because it is efficient; it is humane because it leaves room for the unplanned — a bench in the cold, a path that wanders, a window that opens onto the river rather than the road.",
+    weak_words:["perfunctory","salient","ameliorate"]};
+  return {error:"preview: unhandled "+path};
+}
+</script>
+</body>
+</html>

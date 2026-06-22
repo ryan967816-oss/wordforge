@@ -112,6 +112,24 @@ mechanics (each 0–5), gives a CEFR + TOEFL estimate, quotes your own text in t
 fixes, rewrites your weakest paragraph as a model, and surfaces weak words to
 `add` to WordForge.
 
+## Listening trainer (dictation from your audio)
+
+Turns your California Edge audio library into dictation practice, fully local.
+One-time setup: **double-click `install_listening.command`** (installs whisper.cpp
++ the English model; `afconvert`/`afplay` already ship with macOS). Then:
+
+```
+./.venv/bin/python -m wordforge.listening library          # list your audio, numbered
+./.venv/bin/python -m wordforge.listening dictate <N>      # play a sentence -> type it -> scored
+./.venv/bin/python -m wordforge.listening text <N>         # print the transcript
+./.venv/bin/python -m wordforge.listening play <N>         # just listen (extensive)
+```
+
+Pipeline: your `.mp3` → `afconvert` → wav → **whisper.cpp** transcript (cached) →
+sentence segments → it plays one clip, you type what you heard, and it scores you
+word-by-word and lists the words you missed (candidates to `add` to WordForge).
+Point it elsewhere with `WORDFORGE_LISTENING_DIR`.
+
 ## Optional: standalone .app
 
 `build_app.command` builds `dist/WordForge.app` (Dock-less, add to Login Items)

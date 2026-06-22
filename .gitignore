@@ -8,3 +8,5 @@ dist/
 WordForge.app/
 # Note: data/lexicon.jsonl and data/reviews.jsonl are intentionally NOT ignored —
 # your learning history is meant to be git-versioned and diffable.
+models/
+data/listening/

@@ -197,13 +197,16 @@ class WordForgeApp(rumps.App):
 
     def _present_drill(self, word: dict[str, Any], drill: dict[str, Any]) -> bool:
         """Show one drill; grade it; persist. Returns False if the user cancelled."""
-        msg = drill["prompt"]
         if drill.get("kind") == "discrimination":
             opts = "\n".join(f"  {i}. {o}" for i, o in enumerate(drill.get("options", []), 1))
-            msg = f"{msg}\n\n{opts}\n\n(Type the number or the word.)"
+            note = (f"Pick the word that best fits the context — it may be a near-synonym, "
+                    f"not necessarily “{word['headword']}”.")
+            msg = f"{note}\n\n{drill['prompt']}\n\n{opts}\n\n(Type the number or the word.)"
+            title = f"Word choice — {word['headword']} & near-synonyms"
         else:
-            msg = f"{msg}\n\n(Type the antonym.)"
-        answer = self._prompt(f"Drill — {word['headword']}", msg, ok="Submit", cancel="Stop", lines=4)
+            msg = f"{drill['prompt']}\n\n(Type the antonym.)"
+            title = f"Antonym — {word['headword']}"
+        answer = self._prompt(title, msg, ok="Submit", cancel="Stop", lines=4)
         if answer is None:
             return False
         correct, explanation = drills.check_answer(word, drill, answer)

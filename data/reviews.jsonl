@@ -1,0 +1,13 @@
+{"headword": "perfunctory", "kind": "discrimination", "grade": "good", "correct": true, "ts": "2026-06-21T14:49:46.131851+00:00"}
+{"headword": "trenchant", "kind": "discrimination", "grade": "good", "correct": true, "ts": "2026-06-21T14:50:06.297474+00:00"}
+{"headword": "equivocate", "kind": "discrimination", "grade": "good", "correct": true, "ts": "2026-06-21T14:50:30.848329+00:00"}
+{"headword": "capricious", "kind": "discrimination", "grade": "good", "correct": true, "ts": "2026-06-22T06:27:24.257797+00:00"}
+{"headword": "salient", "kind": "discrimination", "grade": "good", "correct": true, "ts": "2026-06-22T06:27:43.510000+00:00"}
+{"headword": "ameliorate", "kind": "discrimination", "grade": "good", "correct": true, "ts": "2026-06-22T06:27:57.255188+00:00"}
+{"headword": "perfunctory", "kind": "discrimination", "grade": "again", "correct": false, "ts": "2026-06-22T06:30:14.155729+00:00"}
+{"headword": "perfunctory", "kind": "generative", "grade": "hard", "score": "weak", "ts": "2026-06-22T06:30:23.259280+00:00"}
+{"headword": "trenchant", "kind": "discrimination", "grade": "good", "correct": true, "ts": "2026-06-22T06:32:03.776282+00:00"}
+{"headword": "equivocate", "kind": "discrimination", "grade": "again", "correct": false, "ts": "2026-06-22T06:32:40.646161+00:00"}
+{"headword": "equivocate", "kind": "antonym", "grade": "again", "correct": false, "ts": "2026-06-22T10:52:51.451609+00:00"}
+{"headword": "equivocate", "kind": "discrimination", "grade": "good", "correct": true, "ts": "2026-06-22T10:53:38.388651+00:00"}
+{"headword": "capricious", "kind": "discrimination", "grade": "again", "correct": false, "ts": "2026-06-22T11:14:36.389755+00:00"}

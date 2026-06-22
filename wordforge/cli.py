@@ -69,11 +69,17 @@ def _run_one_drill(word: dict[str, Any]) -> bool:
     if not drill:
         print(f"({word['headword']} has no drills; skipping)")
         return False
-    print(f"\n--- {word['headword']} ---")
-    print(drill["prompt"])
     if drill.get("kind") == "discrimination":
+        print(f"\n--- word choice · {word['headword']} & its near-synonyms ---")
+        print(f"Pick the word that best fits the context — it may be a near-synonym,")
+        print(f"not necessarily '{word['headword']}'.")
+        print()
+        print(drill["prompt"])
         for i, opt in enumerate(drill.get("options", []), 1):
             print(f"   {i}. {opt}")
+    else:
+        print(f"\n--- antonym of {word['headword']} ---")
+        print(drill["prompt"])
     try:
         ua = input("Your answer: ").strip()
     except EOFError:

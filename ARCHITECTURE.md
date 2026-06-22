@@ -12,8 +12,8 @@ judgment and local whisper.cpp for speech.
 | Pillar | What it trains | Module | UI | Status |
 |---|---|---|---|---|
 | **Vocabulary** (productive + nuance) | summon/choose the exact word; synonym/antonym discrimination | `wordforge.cli` + `wordforge.app` | menu-bar + CLI | ✅ |
-| **Writing / Expression** | render a thought; figurative range (the "sapphire vs lake" gap) | `wordforge.express` (ladder), `wordforge.writing` (essays) | web + CLI | ✅ |
-| **Listening** | parse the speech stream; dictation + read-along | `wordforge.listening` (dictation), `wordforge.reader` (synced transcript) | web + CLI | ✅ |
+| **Writing / Expression** | render a thought; figurative range (the "sapphire vs lake" gap) | `wordforge.express` (ladder), `wordforge.writing` (essays) | studio + web + CLI | ✅ |
+| **Listening** | parse the speech stream; dictation + read-along | `wordforge.listening` (dictation), `wordforge.reader` (synced transcript) | studio + web + CLI | ✅ |
 | **Reading** | volume of comprehensible input → the vocabulary tail | (his Edge corpus; ingestion tool = backlog) | — | ⛏ backlog |
 | **Speaking** | automaticity; shadowing; pronunciation | (shadowing mode = backlog) | — | ⛏ backlog |
 
@@ -59,9 +59,10 @@ wordforge/
   express.py     EXPRESSION-LADDER web app (:8766) — concept→image-ladder + grade attempt
   listening.py   dictation trainer (whisper.cpp) — CLI
   reader.py      LISTENING READER web app (:8765) — synced scrolling transcript + seek + PDF jump
+  studio.py      WORDFORGE STUDIO web app (:8764) — Vocab + Expression + Reader + Writing + Stats
 data/            lexicon.jsonl, reviews.jsonl, writing/, express/  (git-versioned)
 models/          ggml-base.en.bin (gitignored)         data/listening/  (wav+transcript cache, gitignored)
-install_listening.command  setup_app.py / build_app.command  install/uninstall_login_item.command
+run_studio.command  install_listening.command  setup_app.py / build_app.command  install/uninstall_login_item.command
 ```
 
 ## Data model (a word record)
@@ -77,6 +78,7 @@ drill_cursor, last_reviewed`. One word per line in `data/lexicon.jsonl`.
 
 ```
 python -m wordforge.cli session       # vocab drills (continuous, rotating)
+python -m wordforge.studio            # unified web studio (web :8764)
 python -m wordforge.express           # expression ladder (web :8766)
 python -m wordforge.writing prompts   # essay trainer
 python -m wordforge.reader            # listening read-along (web :8765)

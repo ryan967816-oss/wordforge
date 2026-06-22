@@ -51,6 +51,9 @@ whole learning history is diffable and portable.
 2. **Double-click `run.command`** — launches the menu-bar app. Look for 📖 (with a
    due-count badge) in your menu bar. You can close the Terminal window; the app
    keeps running.
+3. **Double-click `run_studio.command`** — launches the local web studio at
+   `http://localhost:8764`, with Vocab, Expression, Listening Reader, Writing,
+   and Stats in one browser UI.
 
 ### Make it always-on (resident, like a real app)
 
@@ -94,6 +97,18 @@ still works without it.
 ./.venv/bin/python -m wordforge.cli use perfunctory   # write a sentence, get it graded
 ./.venv/bin/python -m wordforge.cli stats
 ./.venv/bin/python -m wordforge.cli list
+```
+
+## WordForge Studio (one web app)
+
+This is the main UI entry point for notched MacBooks: one local browser app, one
+port, no menu-bar hiding. It wraps the existing engines instead of replacing
+them: vocab drills use the same store/scheduler, Expression uses the same
+Claude structured-output ladder, Listening Reader uses the same whisper.cpp
+cache, and Writing uses the same rubric grader.
+
+```
+./.venv/bin/python -m wordforge.studio    # serves http://localhost:8764
 ```
 
 ## Expression Ladder (web app — figurative range)

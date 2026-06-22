@@ -21,6 +21,11 @@ actions without his approval.
 - Verify with real runs and report exact files/commands; land evidence.
 
 ## P1 — Unify into one UI app (the "有 UI 的 app" Ming asked for)
+**Status.** Landed initial studio shell in `wordforge/studio.py` plus
+`run_studio.command`: Vocab, Expression, Listening Reader, Writing, and Stats now
+share one local web app at `:8764`. Remaining P1 polish can continue in small
+passes without changing the underlying engines.
+
 **Goal.** One local web app (a "WordForge Studio" shell at a single port) with a
 left nav hosting: Vocab drill, Expression ladder, Listening reader, Writing,
 Stats — so it's one coherent UI, not five entry points.

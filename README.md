@@ -130,6 +130,23 @@ sentence segments → it plays one clip, you type what you heard, and it scores 
 word-by-word and lists the words you missed (candidates to `add` to WordForge).
 Point it elsewhere with `WORDFORGE_LISTENING_DIR`.
 
+## Listening Reader (web app — read along while you listen)
+
+A local web app (opens in your browser, so it sidesteps the menu-bar/notch
+entirely). Pick an Edge audio file, press play, and the transcript **scrolls and
+highlights in sync**; click any line to jump there; one button opens that unit's
+folder to grab the source PDF.
+
+```
+./.venv/bin/python -m wordforge.reader     # serves http://localhost:8765 and opens it
+```
+
+Transcription is local **whisper.cpp** (cached per file) — no cloud, no API key,
+no per-minute cost. (Deepgram-style live streaming is intentionally not used:
+for pre-recorded files local whisper is better; a live/streaming mode can be
+added later if you want to transcribe a lecture in real time.) Needs the same
+one-time `install_listening.command` setup.
+
 ## Optional: standalone .app
 
 `build_app.command` builds `dist/WordForge.app` (Dock-less, add to Login Items)

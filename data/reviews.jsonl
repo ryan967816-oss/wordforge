@@ -13,3 +13,13 @@
 {"headword": "capricious", "kind": "discrimination", "grade": "again", "correct": false, "ts": "2026-06-22T11:14:36.389755+00:00"}
 {"headword": "capricious", "kind": "antonym", "grade": "again", "correct": false, "ts": "2026-06-22T11:18:51.145495+00:00"}
 {"headword": "capricious", "kind": "discrimination", "grade": "good", "correct": true, "ts": "2026-06-22T11:19:15.877100+00:00"}
+{"headword": "equivocate", "kind": "antonym", "grade": "again", "correct": false, "practice": true, "ts": "2026-06-22T11:40:52.140791+00:00"}
+{"headword": "equivocate", "kind": "discrimination", "grade": "again", "correct": false, "practice": false, "ts": "2026-06-22T11:41:09.802150+00:00"}
+{"headword": "equivocate", "kind": "discrimination", "grade": "again", "correct": false, "practice": true, "ts": "2026-06-22T11:41:29.369413+00:00"}
+{"headword": "equivocate", "kind": "antonym", "grade": "good", "correct": true, "practice": false, "ts": "2026-06-22T11:41:38.719097+00:00"}
+{"headword": "equivocate", "kind": "discrimination", "grade": "good", "correct": true, "practice": true, "ts": "2026-06-22T11:41:54.540383+00:00"}
+{"headword": "equivocate", "kind": "discrimination", "grade": "good", "correct": true, "practice": true, "ts": "2026-06-22T11:42:33.319033+00:00"}
+{"headword": "equivocate", "kind": "antonym", "grade": "good", "correct": true, "practice": true, "ts": "2026-06-22T11:42:49.421206+00:00"}
+{"headword": "equivocate", "kind": "discrimination", "grade": "good", "correct": true, "practice": true, "ts": "2026-06-22T11:42:58.457067+00:00"}
+{"headword": "equivocate", "kind": "discrimination", "grade": "good", "correct": true, "practice": true, "ts": "2026-06-22T11:43:09.020909+00:00"}
+{"headword": "equivocate", "kind": "antonym", "grade": "good", "correct": true, "practice": true, "ts": "2026-06-22T11:43:17.588541+00:00"}

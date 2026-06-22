@@ -24,7 +24,7 @@ import json
 import os
 import shutil
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +51,12 @@ def _file_lock():
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def soon_iso(minutes: int = 10) -> str:
+    """A near-future timestamp — used to resurface a just-missed word shortly,
+    without making it 'due now' and re-triggering the same single word."""
+    return (datetime.now(timezone.utc) + timedelta(minutes=minutes)).isoformat()
 
 
 def parse_iso(s: str) -> datetime:

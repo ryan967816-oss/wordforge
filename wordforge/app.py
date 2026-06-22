@@ -193,17 +193,23 @@ class WordForgeApp(rumps.App):
         self._refresh_badge()
 
     def _run_drill_session(self) -> None:
-        """Modally loop — due words first, then the weakest words for extra
-        practice — until the user presses Stop."""
+        """Modally loop — due words first, then weakest words for extra practice,
+        ROTATING so it never fixates on one word — until the user presses Stop."""
         count = 0
+        seen: set[str] = set()  # words shown this round -> rotation
         while True:
             words = store.load_words()
             if not words:
                 self._alert("No words yet", "Add a word first (Add word…).")
                 return
-            due = drills.next_due_word(words)
-            word = due or store.weakest_word(words)
-            practice = due is None
+            due_list = store.get_due(words)
+            pool = due_list if due_list else store.weak_list(words)
+            practice = not due_list
+            word = next((w for w in pool if w["headword"] not in seen), None)
+            if word is None:           # full round done -> start a fresh round
+                seen.clear()
+                word = pool[0]
+            seen.add(word["headword"])
             drill = drills.pick_drill(word)
             if not drill:
                 store.update_word(word)  # advance cursor even if empty
@@ -235,8 +241,17 @@ class WordForgeApp(rumps.App):
         if answer is None:
             return False, None
         correct, explanation = drills.check_answer(word, drill, answer)
-        verdict = "✓ Correct" if correct else f"✗ Not quite — answer: {drill['answer']}"
-        self._alert(verdict, explanation)
+        if correct:
+            verdict = "✓ Correct"
+        else:
+            picked = answer
+            if drill.get("kind") == "discrimination" and answer.isdigit():
+                opts = drill.get("options", [])
+                i = int(answer) - 1
+                if 0 <= i < len(opts):
+                    picked = opts[i]
+            verdict = f"✗ You chose “{picked}” — answer: {drill['answer']}"
+        self._alert(verdict, f"Why: {explanation}" if explanation else "")
         return True, correct
 
     def _grade_and_log(self, word: dict[str, Any], drill: dict[str, Any],
@@ -244,11 +259,14 @@ class WordForgeApp(rumps.App):
         """Update the schedule and log the review. Mistakes are recorded in BOTH
         normal and extra-practice modes (correct flag + lapses + production score)."""
         if practice:
-            # Past the due queue: don't push correct words further out (protect the
-            # real SRS schedule); resurface a missed word immediately.
+            # Past the due queue. Correct -> raise mastery so the word climbs out
+            # of 'weakest' and the session rotates on. Wrong -> resurface it and
+            # bump the miss count. (Correct never pushes the real SRS due out.)
             grade = "good" if correct else "again"
-            if not correct:
-                word["due"] = store.now_iso()
+            if correct:
+                word["production_score"] = int(word.get("production_score", 0)) + 1
+            else:
+                word["due"] = store.soon_iso()  # resurface soon, not instantly
                 word["lapses"] = int(word.get("lapses", 0)) + 1
                 word["production_score"] = max(0, int(word.get("production_score", 0)) - 1)
         else:

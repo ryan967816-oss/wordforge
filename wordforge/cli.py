@@ -68,11 +68,14 @@ def cmd_show(args: argparse.Namespace) -> int:
 def _grade_and_log(word: dict[str, Any], drill: dict[str, Any],
                    correct: bool, practice: bool) -> None:
     if practice:
-        # Extra practice past the due queue: don't push correct words out;
-        # resurface a missed word right away. Mistakes still logged.
+        # Extra practice past the due queue. Correct -> raise mastery so the word
+        # climbs out of 'weakest' and the session rotates on. Wrong -> resurface
+        # it and bump the miss count. Mistakes still logged either way.
         grade = "good" if correct else "again"
-        if not correct:
-            word["due"] = store.now_iso()
+        if correct:
+            word["production_score"] = int(word.get("production_score", 0)) + 1
+        else:
+            word["due"] = store.soon_iso()  # resurface soon, not instantly
             word["lapses"] = int(word.get("lapses", 0)) + 1
             word["production_score"] = max(0, int(word.get("production_score", 0)) - 1)
     else:
@@ -107,19 +110,36 @@ def _run_one_drill(word: dict[str, Any], practice: bool = False):
     if ua == "":
         return False
     correct, explanation = drills.check_answer(word, drill, ua)
-    print("✓ correct" if correct else f"✗ — answer: {drill['answer']}")
+    if correct:
+        print("✓ correct")
+    else:
+        picked = ua
+        if drill.get("kind") == "discrimination" and ua.isdigit():
+            opts = drill.get("options", [])
+            i = int(ua) - 1
+            if 0 <= i < len(opts):
+                picked = opts[i]
+        print(f"✗ you chose '{picked}' — correct answer: {drill['answer']}")
     if explanation:
-        print(f"   {explanation}")
+        print(f"   Why: {explanation}")
     _grade_and_log(word, drill, correct, practice)
     return True
 
 
-def _pick_word(words: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, bool]:
-    """Return (word, practice): a due word if any, else the weakest word."""
-    due = drills.next_due_word(words)
-    if due is not None:
-        return due, False
-    return store.weakest_word(words), True
+def _pick_word(words: list[dict[str, Any]], seen: set[str]) -> tuple[dict[str, Any] | None, bool]:
+    """Pick the next word WITH ROTATION so a session never fixates on one word.
+    Due words first (soonest due), else weakest-first practice; within the pool,
+    skip words already seen this round so it cycles through all of them before
+    repeating."""
+    due_list = store.get_due(words)
+    pool = due_list if due_list else store.weak_list(words)
+    practice = not due_list
+    word = next((w for w in pool if w["headword"] not in seen), None)
+    if word is None:           # full round done -> start a fresh round
+        seen.clear()
+        word = pool[0]
+    seen.add(word["headword"])
+    return word, practice
 
 
 def cmd_drill(args: argparse.Namespace) -> int:
@@ -127,7 +147,7 @@ def cmd_drill(args: argparse.Namespace) -> int:
     if not words:
         print("No words yet. Add one:  add <word>")
         return 0
-    word, practice = _pick_word(words)
+    word, practice = _pick_word(words, set())
     if _run_one_drill(word, practice) is None:
         print(f"({word['headword']} has no drills)")
     return 0
@@ -137,12 +157,13 @@ def cmd_session(args: argparse.Namespace) -> int:
     # count == 0 (default) => keep going until you press Enter on a blank answer.
     limit = args.count
     done = 0
+    seen: set[str] = set()  # words already shown this round -> rotation
     while limit == 0 or done < limit:
         words = store.load_words()
         if not words:
             print("No words yet. Add one:  add <word>")
             break
-        word, practice = _pick_word(words)
+        word, practice = _pick_word(words, seen)
         res = _run_one_drill(word, practice)
         if res is None:          # no drills on this word; advance and continue
             store.update_word(word)

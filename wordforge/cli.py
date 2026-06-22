@@ -2,8 +2,10 @@
 
     python -m wordforge.cli add perfunctory
     python -m wordforge.cli show perfunctory
-    python -m wordforge.cli drill            # one due drill, interactive
-    python -m wordforge.cli session 10       # up to 10 due drills
+    python -m wordforge.cli drill            # one drill, interactive
+    python -m wordforge.cli session          # continuous (blank answer to stop)
+    python -m wordforge.cli session 10       # cap at 10 drills
+    python -m wordforge.cli weak             # your missed / weak words + wrong answers
     python -m wordforge.cli use perfunctory  # write a sentence, get it graded
     python -m wordforge.cli stats
     python -m wordforge.cli list
@@ -63,15 +65,33 @@ def cmd_show(args: argparse.Namespace) -> int:
     return 0
 
 
-def _run_one_drill(word: dict[str, Any]) -> bool:
-    """Present one drill interactively. Returns True if a drill was run."""
+def _grade_and_log(word: dict[str, Any], drill: dict[str, Any],
+                   correct: bool, practice: bool) -> None:
+    if practice:
+        # Extra practice past the due queue: don't push correct words out;
+        # resurface a missed word right away. Mistakes still logged.
+        grade = "good" if correct else "again"
+        if not correct:
+            word["due"] = store.now_iso()
+            word["lapses"] = int(word.get("lapses", 0)) + 1
+            word["production_score"] = max(0, int(word.get("production_score", 0)) - 1)
+    else:
+        grade = drills.grade_for_correctness(correct)
+        scheduler.review(word, grade)
+    store.update_word(word)
+    store.append_review({"headword": word["headword"], "kind": drill.get("kind"),
+                         "grade": grade, "correct": correct, "practice": practice})
+
+
+def _run_one_drill(word: dict[str, Any], practice: bool = False):
+    """Present one drill. Returns True if answered, False to stop (blank/EOF),
+    None if the word has no drills."""
     drill = drills.pick_drill(word)
     if not drill:
-        print(f"({word['headword']} has no drills; skipping)")
-        return False
+        return None
     if drill.get("kind") == "discrimination":
         print(f"\n--- word choice · {word['headword']} & its near-synonyms ---")
-        print(f"Pick the word that best fits the context — it may be a near-synonym,")
+        print("Pick the word that best fits the context — it may be a near-synonym,")
         print(f"not necessarily '{word['headword']}'.")
         print()
         print(drill["prompt"])
@@ -81,45 +101,75 @@ def _run_one_drill(word: dict[str, Any]) -> bool:
         print(f"\n--- antonym of {word['headword']} ---")
         print(drill["prompt"])
     try:
-        ua = input("Your answer: ").strip()
+        ua = input("Your answer (blank to stop): ").strip()
     except EOFError:
+        return False
+    if ua == "":
         return False
     correct, explanation = drills.check_answer(word, drill, ua)
     print("✓ correct" if correct else f"✗ — answer: {drill['answer']}")
     if explanation:
         print(f"   {explanation}")
-    grade = drills.grade_for_correctness(correct)
-    scheduler.review(word, grade)
-    store.update_word(word)
-    store.append_review({
-        "headword": word["headword"], "kind": drill.get("kind"),
-        "grade": grade, "correct": correct,
-    })
+    _grade_and_log(word, drill, correct, practice)
     return True
+
+
+def _pick_word(words: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, bool]:
+    """Return (word, practice): a due word if any, else the weakest word."""
+    due = drills.next_due_word(words)
+    if due is not None:
+        return due, False
+    return store.weakest_word(words), True
 
 
 def cmd_drill(args: argparse.Namespace) -> int:
     words = store.load_words()
-    word = drills.next_due_word(words)
-    if not word:
-        print("Nothing due. 🎉")
+    if not words:
+        print("No words yet. Add one:  add <word>")
         return 0
-    _run_one_drill(word)
+    word, practice = _pick_word(words)
+    if _run_one_drill(word, practice) is None:
+        print(f"({word['headword']} has no drills)")
     return 0
 
 
 def cmd_session(args: argparse.Namespace) -> int:
+    # count == 0 (default) => keep going until you press Enter on a blank answer.
     limit = args.count
     done = 0
-    while done < limit:
+    while limit == 0 or done < limit:
         words = store.load_words()
-        word = drills.next_due_word(words)
-        if not word:
-            print("\nNothing more due. 🎉")
+        if not words:
+            print("No words yet. Add one:  add <word>")
             break
-        if _run_one_drill(word):
-            done += 1
-    print(f"\nReviewed {done} item(s).")
+        word, practice = _pick_word(words)
+        res = _run_one_drill(word, practice)
+        if res is None:          # no drills on this word; advance and continue
+            store.update_word(word)
+            continue
+        if res is False:         # blank/EOF => stop
+            break
+        done += 1
+    print(f"\nReviewed {done} item(s). 📈" if done else "\nStopped.")
+    return 0
+
+
+def cmd_weak(args: argparse.Namespace) -> int:
+    words = store.load_words()
+    missed = [w for w in store.weak_list(words) if int(w.get("lapses", 0)) > 0]
+    if missed:
+        print("Words you've missed (most-missed first):")
+        for w in missed:
+            print(f"  {w['headword']:18s} missed {w['lapses']}x  "
+                  f"score={w.get('production_score', 0)}  due={w.get('due','')[:10]}")
+    else:
+        print("No misses logged yet — drill a bit and they'll show here.")
+    recent = store.recent_mistakes(15)
+    if recent:
+        print("\nRecent wrong answers:")
+        for r in recent:
+            print(f"  {r.get('headword','?'):18s} {r.get('kind',''):14s} "
+                  f"{str(r.get('ts',''))[:16].replace('T',' ')}")
     return 0
 
 
@@ -177,8 +227,11 @@ def main(argv: list[str] | None = None) -> int:
     pa = sub.add_parser("add"); pa.add_argument("term", nargs="+"); pa.set_defaults(fn=cmd_add)
     ps = sub.add_parser("show"); ps.add_argument("term", nargs="+"); ps.set_defaults(fn=cmd_show)
     sub.add_parser("drill").set_defaults(fn=cmd_drill)
-    psess = sub.add_parser("session"); psess.add_argument("count", type=int, nargs="?", default=10); psess.set_defaults(fn=cmd_session)
+    psess = sub.add_parser("session", help="continuous drill (blank answer to stop); pass N to cap")
+    psess.add_argument("count", type=int, nargs="?", default=0)
+    psess.set_defaults(fn=cmd_session)
     pu = sub.add_parser("use"); pu.add_argument("term", nargs="+"); pu.set_defaults(fn=cmd_use)
+    sub.add_parser("weak", help="show your missed/weak words and recent wrong answers").set_defaults(fn=cmd_weak)
     sub.add_parser("stats").set_defaults(fn=cmd_stats)
     sub.add_parser("list").set_defaults(fn=cmd_list)
 

@@ -188,6 +188,29 @@ def get_due(words: list[dict[str, Any]], at: datetime | None = None) -> list[dic
     return due
 
 
+def weak_list(words: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Words ranked weakest-first: most lapses, then lowest production score,
+    then soonest due. Drives 'extra practice' and the mistakes view."""
+    return sorted(
+        words,
+        key=lambda w: (-int(w.get("lapses", 0)),
+                       int(w.get("production_score", 0)),
+                       w.get("due", "")),
+    )
+
+
+def weakest_word(words: list[dict[str, Any]]) -> dict[str, Any] | None:
+    ranked = weak_list(words)
+    return ranked[0] if ranked else None
+
+
+def recent_mistakes(limit: int = 20) -> list[dict[str, Any]]:
+    """Most recent wrong answers from the review log (newest first)."""
+    reviews = _read_jsonl(config.reviews_path())
+    wrong = [r for r in reviews if r.get("correct") is False or r.get("grade") == "again"]
+    return list(reversed(wrong))[:limit]
+
+
 def append_review(record: dict[str, Any]) -> None:
     record = dict(record)
     record.setdefault("ts", now_iso())

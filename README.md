@@ -21,12 +21,18 @@ and graded on production — not flip-a-card.
 - **Add a word** → Claude grounds it: nuance-annotated synonyms (*when* to prefer
   each), antonyms, collocations, a concrete image/etymology hook, example
   sentences, and confusions — *not* dictionary lines.
-- **Drill due words** → spaced-repetition (SM-2) production drills:
+- **Drill (keeps going)** → spaced-repetition (SM-2) production drills that
+  **don't stop after one word**: it works through everything due, then keeps you
+  practicing the *weakest* words until you press **Stop**.
   - *discrimination*: a cloze with a register/context constraint, pick the right
-    near-synonym;
+    near-synonym (the answer may be a near-synonym, not the headword — that's the
+    point);
   - *antonym contrast*: supply the opposite.
-  These are graded locally from stored data, so daily drilling is instant and
-  offline.
+  Graded locally from stored data, so daily drilling is instant and offline.
+- **My mistakes & weak words** → every answer is logged to `data/reviews.jsonl`
+  (with right/wrong), and each word tracks its miss count (`lapses`) and a
+  productive-mastery score. This view lists your most-missed words and recent
+  wrong answers; the drill prioritizes them.
 - **Write a sentence (graded)** → you produce a sentence with a target word;
   Claude grades sense, register, collocation, and naturalness, and offers a
   sharper version.
@@ -45,6 +51,19 @@ whole learning history is diffable and portable.
 2. **Double-click `run.command`** — launches the menu-bar app. Look for 📖 (with a
    due-count badge) in your menu bar. You can close the Terminal window; the app
    keeps running.
+
+### Make it always-on (resident, like a real app)
+
+**Double-click `install_login_item.command`.** This installs a `launchd`
+LaunchAgent so WordForge **starts automatically at login, restarts itself if it
+ever crashes, and runs menu-bar-only (no Dock icon)** — a true background service.
+Your API key is embedded in a user-only (`chmod 600`) plist under
+`~/Library/LaunchAgents/` (never in the repo). To stop it for good, double-click
+`uninstall_login_item.command`.
+
+> On a MacBook with a notch, the 📖 icon can hide behind the notch when the menu
+> bar is full. A free menu-bar manager like **Ice** (`brew install --cask
+> jordanbaird-ice`) gives you a clickable overflow so nothing hides.
 
 ### API key
 
@@ -69,8 +88,9 @@ still works without it.
 
 ```
 ./.venv/bin/python -m wordforge.cli add perfunctory   # ground + add a word
-./.venv/bin/python -m wordforge.cli drill             # one due drill
-./.venv/bin/python -m wordforge.cli session 10        # up to 10 due drills
+./.venv/bin/python -m wordforge.cli session           # continuous drill (blank line to stop)
+./.venv/bin/python -m wordforge.cli session 10        # cap at 10 drills
+./.venv/bin/python -m wordforge.cli weak              # your missed / weak words + wrong answers
 ./.venv/bin/python -m wordforge.cli use perfunctory   # write a sentence, get it graded
 ./.venv/bin/python -m wordforge.cli stats
 ./.venv/bin/python -m wordforge.cli list

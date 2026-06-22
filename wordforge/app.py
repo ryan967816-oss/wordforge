@@ -45,8 +45,9 @@ class WordForgeApp(rumps.App):
     def _build_menu(self) -> None:
         self.menu = [
             rumps.MenuItem("Add word…", callback=self.on_add_word),
-            rumps.MenuItem("Drill due words", callback=self.on_drill),
-            rumps.MenuItem("Quick drill (any word)", callback=self.on_quick_drill),
+            rumps.MenuItem("Drill (keeps going)", callback=self.on_drill),
+            rumps.MenuItem("Quick drill (one word)", callback=self.on_quick_drill),
+            rumps.MenuItem("My mistakes & weak words", callback=self.on_weak),
             None,
             rumps.MenuItem("Write a sentence (graded)…", callback=self.on_use_word),
             rumps.MenuItem("Look up a word…", callback=self.on_lookup),
@@ -61,7 +62,20 @@ class WordForgeApp(rumps.App):
 
     # --- main-thread plumbing -------------------------------------------------
 
+    def _hide_dock_icon(self) -> None:
+        # Menu-bar only — no Dock icon — regardless of how we're launched
+        # (terminal, nohup, or a launchd LaunchAgent). Done once the run loop
+        # is up so the shared NSApplication exists.
+        try:
+            from AppKit import NSApp, NSApplicationActivationPolicyAccessory
+            NSApp().setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+        except Exception:
+            pass
+
     def _on_tick(self, _timer: rumps.Timer) -> None:
+        if not getattr(self, "_dock_hidden", False):
+            self._hide_dock_icon()
+            self._dock_hidden = True
         # Drain any callables queued by worker / hotkey threads.
         while True:
             try:
@@ -156,47 +170,58 @@ class WordForgeApp(rumps.App):
     # --- actions: drill -------------------------------------------------------
 
     def on_drill(self, _sender: Any) -> None:
-        self._run_drill_session(due_only=True)
+        # Continuous: drill due words, then the weakest words for extra practice,
+        # until you press Stop. Never abruptly ends after one word.
+        self._run_drill_session()
 
     def on_quick_drill(self, _sender: Any) -> None:
-        self._run_drill_session(due_only=False)
+        words = store.load_words()
+        if not words:
+            self._alert("No words yet", "Add a word first (Add word…).")
+            return
+        due = drills.next_due_word(words)
+        word = due or store.weakest_word(words)
+        practice = due is None
+        drill = drills.pick_drill(word)
+        if not drill:
+            self._alert("No drills", f"'{word['headword']}' has no drills.")
+            return
+        answered, correct = self._present_drill(word, drill)
+        if answered:
+            self._grade_and_log(word, drill, correct, practice)
+        store.update_word(word)
+        self._refresh_badge()
 
-    def _run_drill_session(self, due_only: bool) -> None:
-        """Modally loop through drills until none remain or the user cancels."""
+    def _run_drill_session(self) -> None:
+        """Modally loop — due words first, then the weakest words for extra
+        practice — until the user presses Stop."""
         count = 0
         while True:
             words = store.load_words()
             if not words:
                 self._alert("No words yet", "Add a word first (Add word…).")
                 return
-            word = drills.next_due_word(words) if due_only else None
-            if word is None and due_only:
-                msg = f"Reviewed {count} item(s). Nothing else due. 🎉" if count else "Nothing due right now. 🎉"
-                self._alert("Done", msg)
-                return
-            if word is None:  # quick mode: pick the least-recently due word
-                word = sorted(words, key=lambda w: w.get("due", ""))[0]
-
+            due = drills.next_due_word(words)
+            word = due or store.weakest_word(words)
+            practice = due is None
             drill = drills.pick_drill(word)
             if not drill:
-                store.update_word(word)  # persist cursor even if empty
-                if due_only:
-                    continue
-                self._alert("No drills", f"'{word['headword']}' has no drills.")
+                store.update_word(word)  # advance cursor even if empty
+                continue
+            answered, correct = self._present_drill(word, drill)
+            if not answered:  # Stop
+                store.update_word(word)
+                self._refresh_badge()
+                self._alert("Session ended",
+                            f"Reviewed {count} item(s). 📈" if count else "Stopped.")
                 return
-
-            answered = self._present_drill(word, drill)
+            self._grade_and_log(word, drill, correct, practice)
             store.update_word(word)
-            if not answered:  # user cancelled
-                if count:
-                    self._alert("Session ended", f"Reviewed {count} item(s).")
-                return
+            self._refresh_badge()
             count += 1
-            if not due_only:
-                return  # quick drill = single item
 
-    def _present_drill(self, word: dict[str, Any], drill: dict[str, Any]) -> bool:
-        """Show one drill; grade it; persist. Returns False if the user cancelled."""
+    def _present_drill(self, word: dict[str, Any], drill: dict[str, Any]) -> tuple[bool, bool | None]:
+        """Show one drill; report (answered, correct). No scheduling/logging here."""
         if drill.get("kind") == "discrimination":
             opts = "\n".join(f"  {i}. {o}" for i, o in enumerate(drill.get("options", []), 1))
             note = (f"Pick the word that best fits the context — it may be a near-synonym, "
@@ -208,15 +233,48 @@ class WordForgeApp(rumps.App):
             title = f"Antonym — {word['headword']}"
         answer = self._prompt(title, msg, ok="Submit", cancel="Stop", lines=4)
         if answer is None:
-            return False
+            return False, None
         correct, explanation = drills.check_answer(word, drill, answer)
-        grade = drills.grade_for_correctness(correct)
-        scheduler.review(word, grade)
-        store.append_review({"headword": word["headword"], "kind": drill.get("kind"),
-                             "grade": grade, "correct": correct})
         verdict = "✓ Correct" if correct else f"✗ Not quite — answer: {drill['answer']}"
         self._alert(verdict, explanation)
-        return True
+        return True, correct
+
+    def _grade_and_log(self, word: dict[str, Any], drill: dict[str, Any],
+                       correct: bool, practice: bool) -> None:
+        """Update the schedule and log the review. Mistakes are recorded in BOTH
+        normal and extra-practice modes (correct flag + lapses + production score)."""
+        if practice:
+            # Past the due queue: don't push correct words further out (protect the
+            # real SRS schedule); resurface a missed word immediately.
+            grade = "good" if correct else "again"
+            if not correct:
+                word["due"] = store.now_iso()
+                word["lapses"] = int(word.get("lapses", 0)) + 1
+                word["production_score"] = max(0, int(word.get("production_score", 0)) - 1)
+        else:
+            grade = drills.grade_for_correctness(correct)
+            scheduler.review(word, grade)
+        store.append_review({"headword": word["headword"], "kind": drill.get("kind"),
+                             "grade": grade, "correct": correct, "practice": practice})
+
+    def on_weak(self, _sender: Any) -> None:
+        words = store.load_words()
+        missed = [w for w in store.weak_list(words) if int(w.get("lapses", 0)) > 0]
+        lines: list[str] = []
+        if missed:
+            lines.append("Words you've missed (most-missed first):")
+            for w in missed[:15]:
+                lines.append(f"  • {w['headword']} — missed {w['lapses']}×, "
+                             f"score {w.get('production_score', 0)}")
+        else:
+            lines.append("No misses logged yet. Drill a bit and they'll show up here.")
+        recent = store.recent_mistakes(10)
+        if recent:
+            lines.append("\nRecent wrong answers:")
+            for r in recent:
+                lines.append(f"  • {r.get('headword','?')} ({r.get('kind','')}) "
+                             f"— {str(r.get('ts',''))[:16].replace('T',' ')}")
+        self._alert("My mistakes & weak words", "\n".join(lines))
 
     # --- actions: write a sentence (generative, graded) -----------------------
 

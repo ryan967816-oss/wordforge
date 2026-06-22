@@ -96,6 +96,18 @@ still works without it.
 ./.venv/bin/python -m wordforge.cli list
 ```
 
+## Expression Ladder (web app — figurative range)
+
+For the real expressive gap (reaching for *"his eyes are like sapphires"* vs only
+*"like a lake"*). Type a plain thought; it builds a ladder from plain → precise →
+simile → metaphor → embedded-in-scene, each rung labeled with the **image** and
+the **feeling** it carries; then you write your own version and it grades the
+aptness of your image, the connotation match, and the fluency.
+
+```
+./.venv/bin/python -m wordforge.express     # serves http://localhost:8766 and opens it
+```
+
 ## Writing trainer (Claude-graded essays)
 
 A sibling tool that practices *writing* against an academic rubric, grounded in

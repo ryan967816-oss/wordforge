@@ -1,0 +1,204 @@
+library build: 200 new words to ground (model=claude-opus-4-8), 8 already in lexicon
+  [1/200] + candor
+  [2/200] + churlish
+  [3/200] + brusque
+  [4/200] + austere
+  [5/200] + cajole
+  [6/200] + banal
+  [7/200] + circumspect
+  [8/200] + complacent
+  [9/200] + conciliatory
+  [10/200] + cogent
+  [11/200] + compunction
+  [12/200] + copious
+  [13/200] + debacle
+  [14/200] + craven
+  [15/200] + cursory
+  [16/200] + deferential
+  [17/200] + deleterious
+  [18/200] + decorous
+  [19/200] + diaphanous
+  [20/200] + desultory
+  [21/200] + didactic
+  [22/200] + disparate
+  [23/200] + disparage
+  [24/200] + dissemble
+  [25/200] + egregious
+  [26/200] + ebullient
+  [27/200] + effusive
+  [28/200] + ephemeral
+  [29/200] + enervate
+  [30/200] + equanimity
+  [31/200] + extol
+  [32/200] + fastidious
+  [33/200] + esoteric
+  [34/200] + fatuous
+  [35/200] + fervent
+  [36/200] + garrulous
+  [37/200] + gregarious
+  [38/200] + harangue
+  [39/200] + iconoclast
+  [40/200] + hackneyed
+  [41/200] + impecunious
+  [42/200] + impervious
+  [43/200] + inchoate
+  [44/200] + indolent
+  [45/200] + ingratiate
+  [46/200] + ineffable
+  [47/200] + inscrutable
+  [48/200] + insidious
+  [49/200] + jocular
+  [50/200] + inveterate
+  [51/200] + jejune
+  [52/200] + intransigent
+  [53/200] + laudable
+  [54/200] + lethargic
+  [55/200] + loquacious
+  [56/200] + lucid
+  [57/200] + magnanimous
+  [58/200] + mawkish
+  [59/200] + maudlin
+  [60/200] + mercurial
+  [61/200] + meticulous
+  [62/200] + mollify
+  [63/200] + morose
+  [64/200] + nefarious
+  [65/200] + mundane
+  [66/200] + obdurate
+  [67/200] + obsequious
+  [68/200] + obstinate
+  [69/200] + ostentatious
+  [70/200] + penurious
+  [71/200] + perfidious
+  [72/200] + pellucid
+  [73/200] + pertinacious
+  [74/200] + phlegmatic
+  [75/200] + prodigal
+  [76/200] + placate
+  [77/200] + prescient
+  [!] prosaic: Claude API call failed: Connection error.
+  [78/200] + propitious
+  [79/200] + recalcitrant
+  [80/200] + sardonic
+  [!] puerile: Claude API call failed: Connection error.
+  [81/200] + specious
+  [82/200] + sanguine
+  [83/200] + quixotic
+  [84/200] + querulous
+  [85/200] + spurious
+  [86/200] + reticent
+  [87/200] + taciturn
+  [88/200] + tenuous
+  [89/200] + truculent
+  [90/200] + inhibit
+  [91/200] + rational
+  [92/200] + explicit
+  [93/200] + incorporate
+  [94/200] + subsidy
+  [95/200] + underlie
+  [96/200] + aggregate
+  [97/200] + exceed
+  [98/200] + presume
+  [99/200] + incentive
+  [100/200] + allocate
+  [101/200] + enhance
+  [102/200] + precede
+  [103/200] + discriminate
+  [104/200] + acknowledge
+  [105/200] + diverse
+  [106/200] + scope
+  [107/200] + abstract
+  [108/200] + domain
+  [109/200] + flexible
+  [110/200] + transform
+  [111/200] + initiate
+  [112/200] + motive
+  [113/200] + nevertheless
+  [114/200] + cite
+  [115/200] + furthermore
+  [116/200] + ultimate
+  [117/200] + differentiate
+  [118/200] + intervene
+  [119/200] + innovate
+  [120/200] + simulate
+  [121/200] + advocate
+  [122/200] + paradigm
+  [123/200] + isolate
+  [124/200] + empirical
+  [125/200] + convert
+  [126/200] + ideology
+  [127/200] + infer
+  [128/200] + phenomenon
+  [129/200] + comprehensive
+  [130/200] + reverse
+  [131/200] + prohibit
+  [132/200] + finite
+  [133/200] + eliminate
+  [134/200] + thesis
+  [135/200] + virtual
+  [136/200] + displace
+  [137/200] + hierarchy
+  [138/200] + comprise
+  [139/200] + voluntary
+  [140/200] + accumulate
+  [141/200] + contrary
+  [142/200] + commodity
+  [143/200] + offset
+  [144/200] + arbitrary
+  [145/200] + reinforce
+  [146/200] + fluctuate
+  [147/200] + predominant
+  [!] deviate: Claude API call failed: Connection error.
+  [!] implicit: Claude API call failed: Connection error.
+  [!] eventual: Claude API call failed: Connection error.
+  [!] bias: Claude API call failed: Connection error.
+  [!] contradict: Claude API call failed: Connection error.
+  [!] inevitable: Claude API call failed: Connection error.
+  [!] conform: Claude API call failed: Connection error.
+  [!] exploit: Claude API call failed: Connection error.
+  [!] contemporary: Claude API call failed: Connection error.
+  [!] complement: Claude API call failed: Connection error.
+  [!] clarify: Claude API call failed: Connection error.
+  [!] manipulate: Claude API call failed: Connection error.
+  [!] widespread: Claude API call failed: Connection error.
+  [!] restore: Claude API call failed: Connection error.
+  [!] prospect: Claude API call failed: Connection error.
+  [!] mediate: Claude API call failed: Connection error.
+  [!] insight: Claude API call failed: Connection error.
+  [!] controversy: Claude API call failed: Connection error.
+  [!] restrain: Claude API call failed: Connection error.
+  [!] accommodate: Claude API call failed: Connection error.
+  [!] qualitative: Claude API call failed: Connection error.
+  [!] anticipate: Claude API call failed: Connection error.
+  [!] inherent: Claude API call failed: Connection error.
+  [!] analogy: Claude API call failed: Connection error.
+  [!] refine: Claude API call failed: Connection error.
+  [!] diminish: Claude API call failed: Connection error.
+  [!] distort: Claude API call failed: Connection error.
+  [!] intermediate: Claude API call failed: Connection error.
+  [!] mutual: Claude API call failed: Connection error.
+  [!] attain: Claude API call failed: Connection error.
+  [!] integral: Claude API call failed: Connection error.
+  [!] erode: Claude API call failed: Connection error.
+  [!] coincide: Claude API call failed: Connection error.
+  [!] subordinate: Claude API call failed: Connection error.
+  [!] rigid: Claude API call failed: Connection error.
+  [!] cease: Claude API call failed: Connection error.
+  [!] concurrent: Claude API call failed: Connection error.
+  [!] converse: Claude API call failed: Connection error.
+  [!] commence: Claude API call failed: Connection error.
+  [!] coherent: Claude API call failed: Connection error.
+  [!] compatible: Claude API call failed: Connection error.
+  [!] persist: Claude API call failed: Connection error.
+  [!] invoke: Claude API call failed: Connection error.
+  [!] undergo: Claude API call failed: Connection error.
+  [!] conceive: Claude API call failed: Connection error.
+  [!] collapse: Claude API call failed: Connection error.
+  [!] terminate: Claude API call failed: Connection error.
+  [!] denote: Claude API call failed: Connection error.
+  [!] induce: Claude API call failed: Connection error.
+  [!] ambiguous: Claude API call failed: Connection error.
+  [!] radical: Claude API call failed: Connection error.
+
+done: grounded 147/200 in 1010s. lexicon now 155 words. failed: 53
+  retry later (just re-run this script): prosaic, puerile, deviate, implicit, eventual, bias, contradict, inevitable, conform, exploit, contemporary, complement, clarify, manipulate, widespread, restore, prospect, mediate, insight, controversy

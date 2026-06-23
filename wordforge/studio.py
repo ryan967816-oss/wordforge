@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from . import drills, express, grounding, listening, scheduler, store, writing
+from . import drills, express, grounding, listening, scheduler, store, translate, writing
 
 PORT = int(os.environ.get("WORDFORGE_STUDIO_PORT", "8764"))
 
@@ -271,6 +271,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if len(essay.split()) < 20:
                     raise ValueError("essay is too short")
                 _json_response(self, writing.grade_essay(prompt, essay))
+            elif self.path == "/api/translate/prep":
+                _json_response(self, translate.prep_e2c(str(req.get("passage", ""))))
+            elif self.path == "/api/translate/grade_e2c":
+                _json_response(self, translate.grade_e2c(str(req.get("passage", "")),
+                                                         str(req.get("your_chinese", ""))))
+            elif self.path == "/api/translate/scaffold":
+                _json_response(self, translate.make_scaffold(str(req.get("passage", ""))))
+            elif self.path == "/api/translate/grade_back":
+                _json_response(self, translate.grade_back(str(req.get("original", "")),
+                                                          str(req.get("your_english", ""))))
             else:
                 self.send_error(404)
         except Exception as e:

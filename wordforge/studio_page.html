@@ -251,6 +251,8 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2M6 8v8M10 5v14M14 9v6M18 6v12M22 12h0"/></svg>Reader</button>
         <button data-view="writing">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Writing</button>
+        <button data-view="translate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h7M9 3c0 6-2 9-6 11M5 9c0 3 4 5 7 5"/><path d="m13 19 4-9 4 9M14.5 16h5"/></svg>Translate</button>
         <button data-view="stats">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-5M12 16V8M17 16v-3"/></svg>Stats</button>
       </nav>
@@ -328,6 +330,30 @@
             <div id="writingStatus" class="status"></div>
           </div>
           <div id="writingOut"></div>
+        </section>
+
+        <!-- TRANSLATE -->
+        <section id="translate" class="view">
+          <h1>Translate · 中英桥</h1>
+          <div class="card">
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              <button class="btn" id="tmA" onclick="setTransMode('e2c')">E→C · 理解</button>
+              <button class="btn secondary" id="tmB" onclick="setTransMode('back')">回译 C→E · 产出</button>
+            </div>
+            <div class="eyebrow" id="transHint" style="margin-bottom:8px">Paste English → I gloss the hard words → you translate to 中文</div>
+            <textarea id="transSrc" rows="4" placeholder="The scientist, who had spent decades chasing a single elusive particle, finally saw it flicker across the screen…"></textarea>
+            <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+              <button class="btn" id="transStartBtn" onclick="transStart()">Prepare</button>
+              <div id="transStatus" class="status" style="margin:0"></div>
+            </div>
+          </div>
+          <div id="transPrep"></div>
+          <div id="transAnswerBox" class="card" style="display:none">
+            <h2 id="transAnswerLabel">Your translation</h2>
+            <textarea id="transAnswer" class="serif" rows="4"></textarea>
+            <div style="margin-top:12px"><button class="btn secondary" id="transGradeBtn" onclick="transGrade()">Check</button></div>
+            <div id="transGradeOut"></div>
+          </div>
         </section>
 
         <!-- STATS -->
@@ -568,6 +594,68 @@ async function previewApi(path, opts){
     weak_words:["perfunctory","salient","ameliorate"]};
   return {error:"preview: unhandled "+path};
 }
+
+/* ---- Translate (中英桥): E→C intake + back-translation production ---- */
+let transMode="e2c", transSrc="";
+function setTransMode(m){
+  transMode=m;
+  $("tmA").className = m==="e2c" ? "btn" : "btn secondary";
+  $("tmB").className = m==="back" ? "btn" : "btn secondary";
+  $("transHint").textContent = m==="e2c"
+    ? "Paste English → I gloss the hard words → you translate to 中文"
+    : "Paste English → I render it in Chinese with English word order → you rebuild the English original";
+  $("transStartBtn").textContent = m==="e2c" ? "Prepare" : "Make scaffold";
+  $("transPrep").innerHTML=""; $("transAnswerBox").style.display="none"; $("transGradeOut").innerHTML="";
+}
+async function transStart(){
+  transSrc=$("transSrc").value.trim(); if(!transSrc) return;
+  $("transStatus").className="status think"; $("transStatus").textContent="Thinking…";
+  $("transPrep").innerHTML=""; setBusy("transStartBtn",true);
+  try{
+    if(transMode==="e2c"){
+      const d=await api("/api/translate/prep",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({passage:transSrc})});
+      $("transPrep").innerHTML=`<div class="card"><h2>Hard words</h2><div class="list">${
+        d.hard_words.map(w=>`<div class="item"><div><b>${esc(w.word)}</b><div class="sub">${esc(w.hint)}</div></div><span class="tag">${esc(w.chinese)}</span></div>`).join("")
+      }</div></div>`;
+      $("transAnswerLabel").textContent="Your Chinese translation";
+    } else {
+      const d=await api("/api/translate/scaffold",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({passage:transSrc})});
+      $("transPrep").innerHTML=`<div class="card"><h2>Chinese in English word order — rebuild the English</h2><p class="render">${esc(d.scaffold)}</p><p class="muted" style="font-size:13px;margin-top:8px">${esc(d.note)}</p></div>`;
+      $("transAnswerLabel").textContent="Your English reconstruction";
+    }
+    $("transStatus").textContent=""; $("transAnswerBox").style.display="block";
+  }catch(e){$("transStatus").className="status err"; $("transStatus").textContent=e.message;}
+  finally{setBusy("transStartBtn",false);}
+}
+async function transGrade(){
+  const ans=$("transAnswer").value.trim(); if(!ans) return;
+  $("transGradeOut").innerHTML=`<div class="feedback">Grading…</div>`; setBusy("transGradeBtn",true);
+  try{
+    const path = transMode==="e2c" ? "/api/translate/grade_e2c" : "/api/translate/grade_back";
+    const body = transMode==="e2c" ? {passage:transSrc, your_chinese:ans} : {original:transSrc, your_english:ans};
+    const d=await api(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    let h=`<div class="feedback ${d.score==='off'?'err':'ok'}"><b>${esc(d.score)}</b><div class="body">${esc(d.overall||d.feedback||"")}</div></div>`;
+    const lines = d.sentences || d.lines || [];
+    if(lines.length) h += `<div class="list" style="margin-top:10px">`+lines.map(l=>{
+      const ok = l.accurate===true || l.verdict==="match" || l.verdict==="also-valid";
+      const orig = esc(l.english||l.original||""), yours = esc(l.your_chinese||l.yours||""), fix = esc(l.correction||l.comment||l.note||"");
+      return `<div class="item"><div><b>${ok?"✓":"✗"} ${orig}</b>${yours?`<div class="sub">you: ${yours}</div>`:""}${fix?`<div class="sub">${fix}</div>`:""}</div></div>`;
+    }).join("")+`</div>`;
+    const structs=(d.missed_structures||[]); if(structs.length) h+=`<p class="muted" style="margin-top:8px;font-size:13px"><b>missed structures:</b> ${structs.map(esc).join(", ")}</p>`;
+    const missed=(d.missed_words||[]);
+    if(missed.length) h+=`<div style="margin-top:10px"><span class="muted" style="font-size:13px">missed words:</span> ${missed.map(esc).join(", ")} <button class="btn secondary" style="margin-left:8px" id="addMissedBtn" onclick='addMissed(${JSON.stringify(missed)})'>Add all to 库</button></div>`;
+    $("transGradeOut").innerHTML=h;
+  }catch(e){$("transGradeOut").innerHTML=`<div class="feedback err">${esc(e.message)}</div>`;}
+  finally{setBusy("transGradeBtn",false);}
+}
+async function addMissed(words){
+  setBusy("addMissedBtn",true);
+  const b=$("addMissedBtn"); if(b) b.textContent="Grounding…";
+  await Promise.allSettled(words.map(w=>api("/api/add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({term:w})})));
+  if(b){ b.textContent=words.length+" added ✓"; }
+  refreshStats();
+}
+setTransMode("e2c");
 </script>
 </body>
 </html>

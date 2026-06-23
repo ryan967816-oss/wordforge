@@ -210,9 +210,16 @@
   .line-answer{border:1px solid var(--edge); border-radius:6px; padding:12px; margin:10px 0; background:var(--glass-well);}
   .line-answer .top{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;}
   .line-answer .top b{font:600 12px var(--sans); letter-spacing:.05em; text-transform:uppercase; color:var(--frost-500);}
+  .line-source{font:500 14px/1.5 var(--sans); color:var(--frost-100); background:rgba(255,255,255,.035);
+    border:1px solid var(--edge); border-radius:5px; padding:8px 10px; margin-bottom:8px;}
   .slotline{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px;}
   .slotline .pill.warn{border-color:rgba(201,166,107,.35); color:var(--warn);}
   .line-result{font:400 13px/1.45 var(--sans); color:var(--frost-400); margin-top:8px;}
+  .source-follow{position:sticky; top:0; z-index:18; margin:10px 0; padding:10px 12px;
+    border:1px solid var(--edge-2); border-radius:7px; background:rgba(13,17,23,.88);
+    backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur); box-shadow:0 8px 26px rgba(0,0,0,.22);}
+  .source-follow .label{font:600 11px var(--sans); letter-spacing:.06em; text-transform:uppercase; color:var(--ice); margin-bottom:5px;}
+  .source-follow .text{font:500 13px/1.45 var(--sans); color:var(--frost-100); max-height:96px; overflow:auto;}
 
   @media (max-width:840px){
     .app{grid-template-columns:1fr; height:auto;}
@@ -376,6 +383,7 @@
             </div>
           </div>
           <div id="transPrep"></div>
+          <div id="transSourceFollow" class="source-follow" style="display:none"></div>
           <div id="transAnswerBox" class="card" style="display:none">
             <h2 id="transAnswerLabel">Your translation</h2>
             <div id="transLineBox"></div>
@@ -639,6 +647,7 @@ function setTransMode(m){
     : "Source / 原文 stays here · use the scaffold below to rebuild the English";
   $("transStartBtn").textContent = m==="e2c" ? "Prepare" : "Make scaffold";
   $("transPrep").innerHTML=""; $("transAnswerBox").style.display="none"; $("transGradeOut").innerHTML="";
+  $("transSourceFollow").style.display="none";
   syncSupportLabels();
   syncTransSourceVisibility();
   if(transPackage) renderCorpusSupport();
@@ -666,6 +675,7 @@ async function pickCorpusPassage(){
   const id=$("corpusSelect").value;
   if(!id){
     transPackage=null; $("corpusMeta").textContent=""; $("transPrep").innerHTML=""; $("transAnswerBox").style.display="none";
+    $("transSourceFollow").style.display="none";
     syncTransSourceVisibility();
     return;
   }
@@ -712,12 +722,20 @@ function renderCorpusSupport(){
   }
   $("transPrep").innerHTML = html;
   $("transAnswerBox").style.display="block";
+  renderSourceFollow();
   renderLineAnswers();
   $("transGradeOut").innerHTML="";
   return true;
 }
 function stripScaffoldTags(s){
   return String(s||"").replace(/\[[^\]]+\]/g, "").replace(/\s+/g, " ").trim();
+}
+function renderSourceFollow(){
+  const box=$("transSourceFollow");
+  const text=String(transSrc||"").trim();
+  if(!box || !text){ if(box) box.style.display="none"; return; }
+  box.innerHTML=`<div class="label">Source follows / 原文跟随</div><div class="text">${esc(text)}</div>`;
+  box.style.display="block";
 }
 function splitSentences(s){
   return String(s||"").split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean);
@@ -756,6 +774,7 @@ function renderLineAnswers(){
     const chips=lineHints(s).map(h=>`<span class="pill ${h.warn?"warn":""}" title="${esc(h.title)}">${esc(h.text)}</span>`).join("");
     return `<div class="line-answer" data-line="${i}">
       <div class="top"><b>Sentence ${i+1}</b><button class="btn secondary" id="lineCheck${i}" onclick="checkTransLine(${i})">Check line</button></div>
+      <div class="line-source">${esc(s)}</div>
       ${chips?`<div class="slotline">${chips}</div>`:""}
       <textarea class="serif trans-line" data-index="${i}" rows="3" placeholder="${transMode==="e2c"?"中文翻译":"English reconstruction"}" oninput="syncWholeAnswer()"></textarea>
       <div class="line-result" id="lineResult${i}"></div>
@@ -796,7 +815,7 @@ async function transStart(){
       </div>`;
       $("transAnswerLabel").textContent="Your English reconstruction (pick from the palette above)";
     }
-    $("transStatus").textContent=""; $("transAnswerBox").style.display="block"; renderLineAnswers();
+    $("transStatus").textContent=""; $("transAnswerBox").style.display="block"; renderSourceFollow(); renderLineAnswers();
   }catch(e){$("transStatus").className="status err"; $("transStatus").textContent=e.message;}
   finally{setBusy("transStartBtn",false);}
 }
@@ -861,6 +880,7 @@ $("transSrc").addEventListener("input",()=>{
   if(transPackage && $("transSrc").value!==transPackage.text_en){
     transPackage=null; $("corpusSelect").value=""; $("corpusMeta").textContent=""; syncTransSourceVisibility();
   }
+  if($("transAnswerBox").style.display==="none") $("transSourceFollow").style.display="none";
 });
 </script>
 </body>

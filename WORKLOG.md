@@ -196,6 +196,24 @@ Browser QA:
   into that sentence.
 - Clicking `Check line` calls DeepSeek and shows/records the line-level feedback.
 
+### Follow-up fix - Source follows while writing
+
+Context:
+- Ming reported that after scrolling down into the sentence answer boxes, the
+  source text disappeared above the viewport, making reconstruction cumbersome.
+
+Changes:
+- `wordforge/studio_page.html` now renders a sticky `Source follows / 原文跟随`
+  panel between the scaffold and answer area.
+- Each per-sentence answer box also shows its own source sentence above the
+  local hints and textarea.
+
+Verification:
+- Browser QA scrolled to sentence 4 of `A Foolish Consistency`; the sticky source
+  panel remained visible near the top of the viewport.
+- The line answer area rendered 4 `.line-source` blocks; sentence 4 showed the
+  correct source sentence inline.
+
 ## 2026-06-22 - P1 Studio Shell
 
 Operator: Codex.

@@ -6,8 +6,9 @@ Default use is a cheap validation pass:
 
 To grow the corpus from a JSONL file of source passages, pass ``--source-jsonl``.
 Each source row needs at least: id, source, level, title, text_en,
-target_structures. Live generation calls Claude through ``wordforge.translate``;
-it is resume-safe and skips ids already present in ``data/corpus/passages.jsonl``.
+target_structures. Live generation calls the configured structured-call provider
+through ``wordforge.translate``; it is resume-safe and skips ids already present
+in ``data/corpus/passages.jsonl``.
 """
 
 from __future__ import annotations
@@ -48,7 +49,7 @@ def _package_from_source(row: dict[str, Any]) -> dict[str, Any]:
         word = str(g.get("word", "")).strip()
         if word:
             vocab_targets.append(word)
-    return {
+    package = {
         "id": row["id"],
         "source": row["source"],
         "source_url": row.get("source_url", ""),
@@ -63,6 +64,10 @@ def _package_from_source(row: dict[str, Any]) -> dict[str, Any]:
         "note": scaffold.get("note", ""),
         "vocab_targets": vocab_targets,
     }
+    for key in ("book", "route", "module", "why_selected", "context_note"):
+        if key in row:
+            package[key] = row[key]
+    return package
 
 
 def main() -> int:

@@ -1,0 +1,44 @@
+{
+  "routes": [
+    {
+      "id": "self-reliance",
+      "title": "Emerson · Self-Reliance",
+      "source": "Ralph Waldo Emerson, Essays: First Series",
+      "source_url": "https://www.gutenberg.org/ebooks/2944",
+      "local_pdf": "/Users/yuhangxiao/Documents/wordforge_source_pdfs/Emerson_Essays_First_Series__Self_Reliance_inside.pdf",
+      "central_question": "How can a person trust their own live perception instead of being ruled by society, reputation, or yesterday's self?",
+      "why_it_hits": "It answers the question of self-trust with compressed, forceful English: aphorism, command, reversal, and refusal to soften conflict.",
+      "first_attention_act": "Read one paragraph as an act of force: what enemy is Emerson naming, and what English phrase makes the blow land?"
+    },
+    {
+      "id": "walden",
+      "title": "Thoreau · Walden",
+      "source": "Henry David Thoreau, Walden",
+      "source_url": "https://www.gutenberg.org/ebooks/205",
+      "local_pdf": "/Users/yuhangxiao/Documents/wordforge_source_pdfs/Thoreau_Walden.pdf",
+      "central_question": "What remains when life is simplified until its real structure can be touched?",
+      "why_it_hits": "It turns simplification into an experiment rather than a slogan: reduce the noise, face the essential facts, then see what laws remain.",
+      "first_attention_act": "Track each verb of reduction: go, front, simplify, build, put foundations under."
+    },
+    {
+      "id": "douglass-narrative",
+      "title": "Douglass · Narrative",
+      "source": "Frederick Douglass, Narrative of the Life of Frederick Douglass",
+      "source_url": "https://www.gutenberg.org/ebooks/23",
+      "local_pdf": "/Users/yuhangxiao/Documents/wordforge_source_pdfs/Douglass_Narrative.pdf",
+      "central_question": "How does literacy turn from a skill into a weapon of freedom and self-possession?",
+      "why_it_hits": "It makes reading existential: words do not decorate life; they expose power, give thought a tongue, and make slavery mentally impossible.",
+      "first_attention_act": "Watch how a single sentence from the master becomes a revelation for the enslaved child."
+    },
+    {
+      "id": "frankenstein",
+      "title": "Shelley · Frankenstein",
+      "source": "Mary Shelley, Frankenstein; or, The Modern Prometheus",
+      "source_url": "https://www.gutenberg.org/ebooks/84",
+      "local_pdf": "/Users/yuhangxiao/Documents/wordforge_source_pdfs/Shelley_Frankenstein.pdf",
+      "central_question": "What does creation demand from the creator, and what happens when knowledge outruns responsibility?",
+      "why_it_hits": "It speaks to ambition and making: the language first sounds luminous, then turns ethical, lonely, and accusatory.",
+      "first_attention_act": "Separate the intoxication of discovery from the obligation to the thing created."
+    }
+  ]
+}

@@ -1,5 +1,78 @@
 # WordForge Worklog
 
+## 2026-06-23 - Four Reading Routes + Passage Ask
+
+Operator: Codex.
+
+Context:
+- Ming asked to turn the four public-domain books into a real local reading
+  practice system, not only isolated translation exercises: route selection,
+  denser support, per-sentence production, local records, and direct questions
+  while reading.
+
+Current state:
+- Translate has four reading routes: Emerson `Self-Reliance`, Thoreau `Walden`,
+  Douglass `Narrative`, and Shelley `Frankenstein`.
+- The public corpus now has 16 pre-baked passages.
+- Each route has a central question, "why this hits", first attention act,
+  Gutenberg URL, and local source PDF path.
+- The Studio UI exposes `Ask this passage / 问这段`; answers are Chinese but
+  anchored to exact English phrases and concrete English features.
+- Native Studio is running through `run_native.command`; browser fallback is at
+  `http://127.0.0.1:8764/`.
+
+Files changed:
+- `data/corpus/passages.jsonl` - expanded from 6 to 16 public-domain practice
+  packages and added route/book metadata to the seed rows.
+- `data/corpus/reading_paths.json` - four book-route definitions.
+- `wordforge/corpus.py` - loads reading routes and surfaces route metadata in
+  passage summaries.
+- `wordforge/translate.py` - adds passage-level Ask schema/prompt and increases
+  scaffold output budget for dense long passages.
+- `wordforge/studio.py` - adds route and ask APIs plus local PDF/source opening.
+- `wordforge/studio_page.html` - adds Reading path selector, route card, Ask
+  panel, and route-filtered passage picker.
+- `scripts/build_corpus.py` - preserves route/book/context metadata while baking
+  source rows and makes provider wording generic.
+- `README.md` / `data/corpus/README.md` - documents the route-backed corpus.
+
+Verification:
+```bash
+./.venv/bin/python scripts/build_corpus.py --validate
+# count: 16
+
+./.venv/bin/python -m py_compile wordforge/corpus.py wordforge/translate.py wordforge/studio.py scripts/build_corpus.py
+# pass
+
+curl http://127.0.0.1:8764/api/translate/routes
+# returned 4 routes
+
+curl http://127.0.0.1:8764/api/translate/corpus
+# returned 16 passage summaries
+
+curl -X POST http://127.0.0.1:8764/api/translate/ask ...
+# returned answer_zh, english_anchor, what_to_notice, and next_question
+```
+
+Browser QA:
+- Translate showed `Reading path`, `Pick a passage`, and `Support`.
+- Selecting `Emerson · Self-Reliance` showed 4 passages and the route card.
+- Selecting `Trust Thyself` showed source text, word hints, sticky
+  `Source follows / 原文跟随`, Ask panel, and per-sentence input boxes.
+- Ask returned a visible answer anchored to `Trust thyself: every heart vibrates
+  to that iron string.`
+- Switching to `回译 C→E · 产出` kept the source visible and changed the answer
+  boxes to English reconstruction.
+
+Next action:
+- Continue growing the public-domain corpus by route.
+- Add better route-level sequencing once each book has 10-20 passages.
+
+Boundaries:
+- The DeepSeek key remains local in Keychain/env and is not committed.
+- Project Gutenberg/public-domain text is committed; copyrighted textbook OCR
+  remains a local-only path under gitignored directories.
+
 ## 2026-06-23 - Corpus-backed Translate Loop
 
 Operator: Codex.

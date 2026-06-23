@@ -116,7 +116,7 @@ American English."""
 
 def make_scaffold(passage: str) -> dict[str, Any]:
     return grounding._structured_call(SCAFFOLD_SYSTEM, f"English passage:\n{passage}",
-                                      SCAFFOLD_SCHEMA, max_tokens=2000)
+                                      SCAFFOLD_SCHEMA, max_tokens=3500)
 
 
 GRADE_BACK_SCHEMA: dict[str, Any] = {
@@ -150,3 +150,48 @@ score: excellent / good / partial / off. feedback: one or two honest sentences. 
 def grade_back(original: str, your_english: str) -> dict[str, Any]:
     user = f"Original English:\n{original}\n\nLearner's reconstruction:\n{your_english}"
     return grounding._structured_call(GRADE_BACK_SYSTEM, user, GRADE_BACK_SCHEMA, max_tokens=3000)
+
+
+# --- Reading questions -------------------------------------------------------
+
+ASK_SCHEMA: dict[str, Any] = {
+    "type": "object", "additionalProperties": False,
+    "properties": {
+        "answer_zh": {"type": "string"},
+        "english_anchor": {"type": "string"},
+        "what_to_notice": {"type": "array", "items": {"type": "string"}},
+        "next_question": {"type": "string"},
+    },
+    "required": ["answer_zh", "english_anchor", "what_to_notice", "next_question"],
+}
+
+ASK_SYSTEM = """You are helping a Chinese learner read a difficult English source text deeply.
+Answer in Chinese, but do NOT replace the English with a Chinese summary. Keep the user's
+attention attached to the original English.
+
+For every answer:
+- Give a light, useful answer to the question in Chinese.
+- Anchor it in one exact English phrase or sentence from the passage.
+- Name 2-4 concrete English things to notice: word choice, structure, metaphor, tense, register, or rhetorical force.
+- Suggest one next question the learner could ask.
+
+Do not over-explain the whole book unless asked. Preserve curiosity."""
+
+
+def ask_about_passage(passage: dict[str, Any], question: str, route: dict[str, Any] | None = None) -> dict[str, Any]:
+    route_bits = ""
+    if route:
+        route_bits = (
+            f"\nBook route: {route.get('title','')}\n"
+            f"Central question: {route.get('central_question','')}\n"
+            f"Why it may hit: {route.get('why_it_hits','')}\n"
+        )
+    user = (
+        f"Title: {passage.get('title','')}\n"
+        f"Source: {passage.get('source','')}\n"
+        f"Why selected: {passage.get('why_selected','')}\n"
+        f"{route_bits}\n"
+        f"Passage:\n{passage.get('text_en','')}\n\n"
+        f"Learner question:\n{question}"
+    )
+    return grounding._structured_call(ASK_SYSTEM, user, ASK_SCHEMA, max_tokens=1800)

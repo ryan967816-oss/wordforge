@@ -2,7 +2,16 @@
 
 `passages.jsonl` is the committed, copyright-clean seed corpus for Translate.
 It is intentionally small first: enough to test whether the learning loop feels
-"touchable" before scaling.
+"touchable" before scaling. The current public corpus has 16 passages organized
+by `reading_paths.json` into four routes:
+
+- Emerson, `Self-Reliance`
+- Thoreau, `Walden`
+- Frederick Douglass, `Narrative`
+- Mary Shelley, `Frankenstein`
+
+Each route includes a central question, why it was selected, a Gutenberg source
+URL, and a local source PDF path used by the Studio "Open original PDF" button.
 
 Local-only textbook passages, including OCR from California Edge C, should go in:
 

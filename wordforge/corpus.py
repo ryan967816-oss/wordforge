@@ -39,6 +39,10 @@ def public_path() -> Path:
     return corpus_dir() / "passages.jsonl"
 
 
+def routes_path() -> Path:
+    return corpus_dir() / "reading_paths.json"
+
+
 def local_dir() -> Path:
     d = corpus_dir() / "local"
     d.mkdir(parents=True, exist_ok=True)
@@ -90,6 +94,9 @@ def list_passages() -> list[dict[str, Any]]:
             "title": p["title"],
             "level": p["level"],
             "source": p["source"],
+            "route": p.get("route", p.get("module", "")),
+            "module": p.get("module", ""),
+            "why_selected": p.get("why_selected", ""),
             "target_structures": p.get("target_structures", []),
             "local": str(p.get("source", "")).lower().startswith("edge"),
         }
@@ -113,3 +120,18 @@ def validate() -> dict[str, Any]:
         "public_path": str(public_path()),
         "local_dir": str(local_dir()),
     }
+
+
+def load_routes() -> list[dict[str, Any]]:
+    path = routes_path()
+    if not path.exists():
+        return []
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return list(data.get("routes", []))
+
+
+def get_route(rid: str) -> dict[str, Any] | None:
+    for route in load_routes():
+        if route.get("id") == rid:
+            return route
+    return None

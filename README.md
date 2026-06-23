@@ -138,6 +138,13 @@ The Translate tab now supports both practice loops:
 - For corpus passages, the answer area is split into one input box per sentence.
   Each sentence has local slot hints/palette chips, and you can `Check line` or
   `Check all`.
+- **Reading path:** choose one of four public-domain book routes: Emerson
+  `Self-Reliance`, Thoreau `Walden`, Douglass `Narrative`, or Shelley
+  `Frankenstein`. The route card shows the central question, why the book matters
+  for this learning loop, and a button to open the local source PDF.
+- **Ask this passage / 问这段:** while reading, ask a local question about the
+  selected passage. The answer is in Chinese but anchored to an exact English
+  phrase or sentence, with concrete English features to notice next.
 
 Corpus practice has four support levels:
 
@@ -146,8 +153,9 @@ Corpus practice has four support levels:
 3. only Chinese-in-English-order scaffold;
 4. bare translation / bare back-translation.
 
-The committed seed corpus lives at `data/corpus/passages.jsonl`. It starts with
-copyright-clean public-domain selections from Emerson, Thoreau, Douglass, and
+The committed seed corpus lives at `data/corpus/passages.jsonl`; the four
+reading routes live at `data/corpus/reading_paths.json`. The current public
+corpus contains 16 copyright-clean passages from Emerson, Thoreau, Douglass, and
 Mary Shelley, chosen for dense, idea-bearing prose.
 
 Local textbook passages, such as OCR from California Edge C, are supported but

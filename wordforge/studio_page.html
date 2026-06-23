@@ -11,7 +11,7 @@
   :root{
     color-scheme: dark;
     --ink-900:#0A0D12; --ink-700:#10141B; --ink-600:#141A22; --ink-400:#20272F;
-    --frost-100:#E8EEF5; --frost-300:#B7C0CD; --frost-400:#8A95A5; --frost-600:#5A6472;
+    --frost-100:#E8EEF5; --frost-300:#B7C0CD; --frost-400:#8A95A5; --frost-500:#717C8D; --frost-600:#5A6472;
     --accent:#5B8FD6; --accent-press:#3C6196; --ice:#8FC0F0; --on-accent:#0A0D12;
     --accent-wash:rgba(91,143,214,.12); --glow:rgba(143,192,240,.18);
     --ok:#5FB89B; --warn:#C9A66B; --err:#D6798A; --ok-wash:rgba(95,184,155,.12); --err-wash:rgba(214,121,138,.12);
@@ -220,6 +220,17 @@
     backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur); box-shadow:0 8px 26px rgba(0,0,0,.22);}
   .source-follow .label{font:600 11px var(--sans); letter-spacing:.06em; text-transform:uppercase; color:var(--ice); margin-bottom:5px;}
   .source-follow .text{font:500 13px/1.45 var(--sans); color:var(--frost-100); max-height:96px; overflow:auto;}
+  .route-meta{border:1px solid var(--edge); border-radius:6px; padding:10px 12px; margin:-2px 0 12px;
+    background:rgba(255,255,255,.035);}
+  .route-meta b{font:600 14px var(--sans); color:var(--frost-100);}
+  .route-meta p{margin:5px 0 0; font:400 13px/1.45 var(--sans); color:var(--frost-400);}
+  .route-meta .actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;}
+  .route-meta a{color:var(--ice); text-decoration:none;}
+  .route-meta a:hover{text-decoration:underline;}
+  .ask-answer{border:1px solid var(--edge); border-radius:6px; padding:12px; margin-top:12px; background:var(--glass-well);}
+  .ask-answer p{margin:8px 0; color:var(--frost-300);}
+  .ask-answer ul{margin:8px 0 0; padding-left:18px; color:var(--frost-300);}
+  .ask-answer li{margin:4px 0;}
 
   @media (max-width:840px){
     .app{grid-template-columns:1fr; height:auto;}
@@ -355,14 +366,20 @@
               <button class="btn" id="tmA" onclick="setTransMode('e2c')">E→C · 理解</button>
               <button class="btn secondary" id="tmB" onclick="setTransMode('back')">回译 C→E · 产出</button>
             </div>
-            <div class="row" style="margin-bottom:12px">
+            <div class="row" style="margin-bottom:12px;flex-wrap:wrap">
+              <div style="width:260px;flex:0 1 260px">
+                <div class="eyebrow" style="margin-bottom:8px">Reading path</div>
+                <select id="routeSelect" onchange="setRouteFilter()">
+                  <option value="">All four books</option>
+                </select>
+              </div>
               <div class="grow">
                 <div class="eyebrow" style="margin-bottom:8px">Pick a passage</div>
                 <select id="corpusSelect" onchange="pickCorpusPassage()">
                   <option value="">Paste your own passage…</option>
                 </select>
               </div>
-              <div style="width:210px">
+              <div style="width:210px;flex:0 1 210px">
                 <div class="eyebrow" style="margin-bottom:8px">Support</div>
                 <select id="supportLevel" onchange="renderCorpusSupport()">
                   <option value="1">1 · thick scaffold</option>
@@ -372,6 +389,7 @@
                 </select>
               </div>
             </div>
+            <div id="routeMeta"></div>
             <div id="corpusMeta" class="muted" style="font-size:13px;margin:-4px 0 12px"></div>
             <div id="transSrcWrap">
               <div class="eyebrow" id="transHint" style="margin-bottom:8px">Source / 原文 · paste English → I gloss hard words → you translate to 中文</div>
@@ -384,6 +402,16 @@
           </div>
           <div id="transPrep"></div>
           <div id="transSourceFollow" class="source-follow" style="display:none"></div>
+          <div id="transAskBox" class="card" style="display:none">
+            <h2>Ask this passage / 问这段</h2>
+            <div id="transAskContext" class="muted" style="font-size:13px;margin-bottom:10px"></div>
+            <textarea id="transQuestion" rows="2" placeholder="这段上下文是什么？这句话为什么有力？这个词在这里带什么感觉？"></textarea>
+            <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn secondary" id="transAskBtn" onclick="askPassage()">Ask</button>
+              <span class="muted" style="font-size:13px">回答会锚定英文原句，不会用中文总结替代阅读。</span>
+            </div>
+            <div id="transAskOut"></div>
+          </div>
           <div id="transAnswerBox" class="card" style="display:none">
             <h2 id="transAnswerLabel">Your translation</h2>
             <div id="transLineBox"></div>
@@ -637,7 +665,7 @@ async function previewApi(path, opts){
 }
 
 /* ---- Translate (中英桥): E→C intake + back-translation production ---- */
-let transMode="e2c", transSrc="", transPackage=null, corpusList=[];
+let transMode="e2c", transSrc="", transPackage=null, corpusList=[], routesList=[], activeRoute="";
 function setTransMode(m){
   transMode=m;
   $("tmA").className = m==="e2c" ? "btn" : "btn secondary";
@@ -662,11 +690,78 @@ function syncTransSourceVisibility(){
   $("transSrcWrap").style.display = "block";
   $("transStartRow").style.display = "flex";
 }
+function passageRoute(p){ return String(p?.route || p?.module || ""); }
+function routeById(id){ return routesList.find(r=>r.id===id) || null; }
+function routeLabel(id){ const r=routeById(id); return r ? r.title : id; }
+async function loadRoutes(){
+  try{
+    routesList = await api("/api/translate/routes");
+    $("routeSelect").innerHTML = `<option value="">All four books</option>` +
+      routesList.map(r=>`<option value="${esc(r.id)}">${esc(r.title)}</option>`).join("");
+    renderRouteMeta();
+  }catch(e){
+    routesList = [];
+    $("routeSelect").innerHTML = `<option value="">Reading paths unavailable</option>`;
+  }
+}
+function renderCorpusOptions(){
+  const current = $("corpusSelect").value;
+  const filtered = activeRoute ? corpusList.filter(p=>passageRoute(p)===activeRoute) : corpusList;
+  const emptyLabel = activeRoute ? "No passages in this route yet" : "Paste your own passage…";
+  $("corpusSelect").innerHTML = `<option value="">${esc(emptyLabel)}</option>` +
+    filtered.map(p=>{
+      const route = passageRoute(p);
+      const prefix = route ? `${routeLabel(route)} · ` : "";
+      return `<option value="${esc(p.id)}">${esc(prefix)}${esc(p.title)} — ${esc((p.target_structures||[]).slice(0,2).join(", "))}</option>`;
+    }).join("");
+  if(filtered.some(p=>p.id===current)) $("corpusSelect").value = current;
+}
+function renderRouteMeta(){
+  const box=$("routeMeta");
+  if(!box) return;
+  const route=routeById(activeRoute);
+  if(!route){
+    box.innerHTML = routesList.length
+      ? `<div class="route-meta"><b>Four reading paths are loaded.</b><p>Choose a book route, then pick a passage. Each passage is a practice object, not a summary.</p></div>`
+      : "";
+    return;
+  }
+  const count=corpusList.filter(p=>passageRoute(p)===route.id).length;
+  box.innerHTML=`<div class="route-meta">
+    <b>${esc(route.title)} · ${count} passage${count===1?"":"s"}</b>
+    <p><b style="font-size:12px;color:var(--frost-400)">Question:</b> ${esc(route.central_question||"")}</p>
+    <p><b style="font-size:12px;color:var(--frost-400)">Why this may hit:</b> ${esc(route.why_it_hits||"")}</p>
+    <p><b style="font-size:12px;color:var(--frost-400)">First attention act:</b> ${esc(route.first_attention_act||"")}</p>
+    <div class="actions">
+      <button class="btn secondary" onclick="openRoutePdf('${esc(route.id)}')">Open original PDF</button>
+      ${route.source_url?`<a href="${esc(route.source_url)}" target="_blank" rel="noreferrer">Gutenberg source</a>`:""}
+    </div>
+  </div>`;
+}
+function clearSelectedPassage(){
+  transPackage=null;
+  $("corpusMeta").textContent="";
+  $("transPrep").innerHTML="";
+  $("transAnswerBox").style.display="none";
+  $("transAskBox").style.display="none";
+  $("transAskOut").innerHTML="";
+  $("transSourceFollow").style.display="none";
+}
+function setRouteFilter(){
+  activeRoute = $("routeSelect").value || "";
+  renderRouteMeta();
+  renderCorpusOptions();
+  if(transPackage && activeRoute && passageRoute(transPackage)!==activeRoute) clearSelectedPassage();
+}
+async function openRoutePdf(id){
+  try{ await api("/api/translate/route/open_pdf?id="+encodeURIComponent(id)); }
+  catch(e){ $("transStatus").className="status err"; $("transStatus").textContent=e.message; }
+}
 async function loadCorpus(){
   try{
     corpusList = await api("/api/translate/corpus");
-    $("corpusSelect").innerHTML = `<option value="">Paste your own passage…</option>` +
-      corpusList.map(p=>`<option value="${esc(p.id)}">${esc(p.level)} · ${esc(p.title)} — ${esc((p.target_structures||[]).slice(0,2).join(", "))}</option>`).join("");
+    renderRouteMeta();
+    renderCorpusOptions();
   }catch(e){
     $("corpusSelect").innerHTML = `<option value="">Corpus unavailable</option>`;
   }
@@ -674,17 +769,29 @@ async function loadCorpus(){
 async function pickCorpusPassage(){
   const id=$("corpusSelect").value;
   if(!id){
-    transPackage=null; $("corpusMeta").textContent=""; $("transPrep").innerHTML=""; $("transAnswerBox").style.display="none";
-    $("transSourceFollow").style.display="none";
+    clearSelectedPassage();
     syncTransSourceVisibility();
     return;
   }
   $("transStatus").className="status think"; $("transStatus").textContent="Loading pre-baked passage…";
   try{
     transPackage = await api("/api/translate/corpus/get?id="+encodeURIComponent(id));
+    const rid=passageRoute(transPackage);
+    if(rid && $("routeSelect").value!==rid){
+      activeRoute=rid;
+      $("routeSelect").value=rid;
+      renderRouteMeta();
+      renderCorpusOptions();
+      $("corpusSelect").value=id;
+    }
     transSrc = transPackage.text_en || "";
     $("transSrc").value = transSrc;
-    $("corpusMeta").textContent = `${transPackage.source} · ${transPackage.why_selected || ""}`;
+    $("corpusMeta").textContent = `${transPackage.source} · ${transPackage.context_note || transPackage.why_selected || ""}`;
+    $("transAskBox").style.display="block";
+    $("transAskContext").textContent = `${routeLabel(rid)} · ${transPackage.title}`;
+    $("transAskOut").innerHTML="";
+    $("transQuestion").value = $("transQuestion").value || "这段上下文是什么？为什么这句话有力？";
+    $("transAnswer").value="";
     syncTransSourceVisibility();
     renderCorpusSupport();
     $("transStatus").textContent="";
@@ -866,6 +973,31 @@ async function checkTransLine(i){
     out.innerHTML=`<span style="color:var(--err)">${esc(e.message)}</span>`;
   }finally{setBusy("lineCheck"+i,false);}
 }
+async function askPassage(){
+  if(!transPackage) return;
+  const q=($("transQuestion").value||"").trim();
+  if(!q) return;
+  $("transAskOut").innerHTML=`<div class="status think" style="margin-top:10px">Reading with the source…</div>`;
+  setBusy("transAskBtn",true);
+  try{
+    const d=await api("/api/translate/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      passage_id:transPackage.id,
+      question:q
+    })});
+    const notices=(d.what_to_notice||[]).map(x=>`<li>${esc(x)}</li>`).join("");
+    $("transAskOut").innerHTML=`<div class="ask-answer">
+      <div class="eyebrow" style="color:var(--ice)">Answer anchored in English</div>
+      <p>${esc(d.answer_zh||"")}</p>
+      ${d.english_anchor?`<p><b>English anchor:</b> <span class="serif-lead" style="font-size:17px">${esc(d.english_anchor)}</span></p>`:""}
+      ${notices?`<p><b>Notice:</b></p><ul>${notices}</ul>`:""}
+      ${d.next_question?`<p><b>Next question:</b> ${esc(d.next_question)}</p>`:""}
+    </div>`;
+  }catch(e){
+    $("transAskOut").innerHTML=`<div class="feedback err" style="margin-top:10px"><div class="body">${esc(e.message)}</div></div>`;
+  }finally{
+    setBusy("transAskBtn",false);
+  }
+}
 async function addMissed(words){
   setBusy("addMissedBtn",true);
   const b=$("addMissedBtn"); if(b) b.textContent="Grounding…";
@@ -875,10 +1007,12 @@ async function addMissed(words){
 }
 function insertWord(w){ const t=$("transAnswer"); t.value += (t.value && !/\s$/.test(t.value) ? " " : "") + w; t.focus(); }
 setTransMode("e2c");
-loadCorpus().catch(()=>{});
+Promise.allSettled([loadRoutes(), loadCorpus()]).then(()=>{renderRouteMeta(); renderCorpusOptions();});
 $("transSrc").addEventListener("input",()=>{
   if(transPackage && $("transSrc").value!==transPackage.text_en){
-    transPackage=null; $("corpusSelect").value=""; $("corpusMeta").textContent=""; syncTransSourceVisibility();
+    transPackage=null; $("corpusSelect").value=""; $("corpusMeta").textContent="";
+    $("transAskBox").style.display="none"; $("transAskOut").innerHTML="";
+    syncTransSourceVisibility();
   }
   if($("transAnswerBox").style.display==="none") $("transSourceFollow").style.display="none";
 });

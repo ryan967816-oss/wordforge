@@ -251,6 +251,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 _json_response(self, _prompts_payload())
             elif u.path == "/api/translate/corpus":
                 _json_response(self, corpus.list_passages())
+            elif u.path == "/api/translate/routes":
+                _json_response(self, corpus.load_routes())
+            elif u.path == "/api/translate/route/open_pdf":
+                rid = qs.get("id", [""])[0]
+                route = corpus.get_route(rid)
+                if route is None:
+                    _json_response(self, {"error": f"route not found: {rid}"}, 404)
+                else:
+                    local_pdf = str(route.get("local_pdf", ""))
+                    source_url = str(route.get("source_url", ""))
+                    target = local_pdf if local_pdf and Path(local_pdf).exists() else source_url
+                    if not target:
+                        raise ValueError("route has no local PDF or source URL")
+                    subprocess.run(["open", target], check=False)
+                    _json_response(self, {"ok": True, "opened": target})
             elif u.path == "/api/translate/corpus/get":
                 pid = qs.get("id", [""])[0]
                 passage = corpus.get_passage(pid)
@@ -341,6 +356,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     sentence_index=req.get("sentence_index"),
                 )
                 _json_response(self, result)
+            elif self.path == "/api/translate/ask":
+                pid = str(req.get("passage_id", ""))
+                question = str(req.get("question", "")).strip()
+                if not question:
+                    raise ValueError("empty question")
+                passage = corpus.get_passage(pid)
+                if passage is None:
+                    raise ValueError(f"passage not found: {pid}")
+                route = corpus.get_route(str(passage.get("route", passage.get("module", ""))))
+                _json_response(self, translate.ask_about_passage(passage, question, route))
             else:
                 self.send_error(404)
         except Exception as e:

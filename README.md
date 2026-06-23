@@ -150,6 +150,19 @@ Studio automatically loads completed local packages from `data/corpus/local/`.
 Raw OCR rows stay in `data/corpus/sources_local/`; both directories are
 gitignored.
 
+There is also a no-browser terminal fallback that uses the same local corpus and
+does not call Claude unless you ask for final grading:
+
+```
+./.venv/bin/python -m wordforge.cli translate
+./.venv/bin/python -m wordforge.cli translate --mode e2c --support 2
+./.venv/bin/python -m wordforge.cli translate --mode back --support 1 --claude-grade
+```
+
+Terminal mode always prints the source text, a separate `word hints` line, the
+selected support scaffold, and then records your attempt in
+`data/translate_attempts.jsonl`.
+
 ## Expression Ladder (web app — figurative range)
 
 For the real expressive gap (reaching for *"his eyes are like sapphires"* vs only

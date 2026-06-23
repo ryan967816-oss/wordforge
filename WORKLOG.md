@@ -83,6 +83,42 @@ Boundaries:
   `data/corpus/local/`.
 - Live grading still uses Claude; pre-baked corpus support loads instantly.
 
+### Follow-up fix - UI support visibility + terminal fallback
+
+Context:
+- Browser showed `Failed to fetch` because the old Studio backend was no longer
+  listening on `:8764`.
+- Ming also corrected the product shape: the source text must stay visible while
+  typing, and word hints need to be a separate, glanceable line with Chinese
+  glosses.
+
+Changes:
+- `wordforge/studio_page.html` keeps the source/original text visible in both
+  E->C and back-translation modes.
+- Corpus support now starts with a separate `WORD HINTS` line such as
+  `thyself = 你自己`.
+- `wordforge/translate_terminal.py` adds a terminal practice fallback using the
+  same pre-baked corpus, with no Claude call unless `--claude-grade` is passed.
+- `wordforge/cli.py translate` exposes that terminal mode from the main CLI.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile wordforge/translate_terminal.py wordforge/cli.py wordforge/corpus.py wordforge/studio.py
+# pass
+
+./.venv/bin/python -m wordforge.cli translate --id thoreau-walden-live-deliberately --mode back --support 1
+# printed SOURCE / 原文, word hints, scaffold, palette, accepted an answer, and emitted local missed-word coverage
+
+curl 'http://127.0.0.1:8764/api/translate/corpus/get?id=emerson-self-reliance-trust-thyself'
+# returned the full passage package
+```
+
+Browser QA:
+- Selecting `Trust Thyself` loads the source text instead of placeholder text.
+- E->C support shows `WORD HINTS` with Chinese glosses.
+- Back-translation keeps the source area visible and also shows `WORD HINTS`,
+  scaffold, grammar, structures, and palette.
+
 ## 2026-06-22 - P1 Studio Shell
 
 Operator: Codex.

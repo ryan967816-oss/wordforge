@@ -205,6 +205,8 @@
   .fix b{font:600 14px var(--sans); color:var(--frost-100);}
   .fix .quote{margin:4px 0; font:italic 400 14px/1.5 var(--serif); color:var(--frost-400);}
   .fix p{margin:0; font:400 14px/1.5 var(--sans); color:var(--frost-300);}
+  .hintline{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0 0 14px;}
+  .hintline b{font:600 12px var(--sans); color:var(--frost-500); text-transform:uppercase; letter-spacing:.08em;}
 
   @media (max-width:840px){
     .app{grid-template-columns:1fr; height:auto;}
@@ -359,7 +361,7 @@
             </div>
             <div id="corpusMeta" class="muted" style="font-size:13px;margin:-4px 0 12px"></div>
             <div id="transSrcWrap">
-              <div class="eyebrow" id="transHint" style="margin-bottom:8px">Paste English → I gloss the hard words → you translate to 中文</div>
+              <div class="eyebrow" id="transHint" style="margin-bottom:8px">Source / 原文 · paste English → I gloss hard words → you translate to 中文</div>
               <textarea id="transSrc" rows="4" placeholder="The scientist, who had spent decades chasing a single elusive particle, finally saw it flicker across the screen…"></textarea>
             </div>
             <div id="transStartRow" style="margin-top:12px;display:flex;align-items:center;gap:12px">
@@ -622,8 +624,8 @@ function setTransMode(m){
   $("tmA").className = m==="e2c" ? "btn" : "btn secondary";
   $("tmB").className = m==="back" ? "btn" : "btn secondary";
   $("transHint").textContent = m==="e2c"
-    ? "Paste English → I gloss the hard words → you translate to 中文"
-    : "Paste English → I render it in Chinese with English word order → you rebuild the English original";
+    ? "Source / 原文 · paste English → I gloss hard words → you translate to 中文"
+    : "Source / 原文 stays here · use the scaffold below to rebuild the English";
   $("transStartBtn").textContent = m==="e2c" ? "Prepare" : "Make scaffold";
   $("transPrep").innerHTML=""; $("transAnswerBox").style.display="none"; $("transGradeOut").innerHTML="";
   syncSupportLabels();
@@ -637,9 +639,8 @@ function syncSupportLabels(){
   [...$("supportLevel").options].forEach((o, i)=>{ o.textContent = labels[i] || o.textContent; });
 }
 function syncTransSourceVisibility(){
-  const hideSource = transMode==="back" && !!transPackage;
-  $("transSrcWrap").style.display = hideSource ? "none" : "block";
-  $("transStartRow").style.display = hideSource ? "none" : "flex";
+  $("transSrcWrap").style.display = "block";
+  $("transStartRow").style.display = "flex";
 }
 async function loadCorpus(){
   try{
@@ -680,19 +681,20 @@ function renderCorpusSupport(){
   const grammar = transPackage.grammar || [];
   const structureLine = structures.length ? `<p class="muted" style="font-size:13px"><b>structures:</b> ${structures.map(esc).join(" · ")}</p>` : "";
   const grammarLine = grammar.length ? `<p class="muted" style="font-size:13px"><b>watch:</b> ${grammar.map(esc).join(" · ")}</p>` : "";
+  const wordHintLine = glosses.length ? `<div class="hintline"><b>word hints</b>${glosses.map(w=>`<span class="pill">${esc(w.word)} = ${esc(w.chinese)}</span>`).join("")}</div>` : "";
   const hardWords = glosses.length ? `<div class="list">${glosses.map(w=>`<div class="item"><div><b>${esc(w.word)}</b><div class="sub">${esc(w.hint)}</div></div><span class="tag">${esc(w.chinese)}</span></div>`).join("")}</div>` : `<p class="muted">No hard-word hints for this passage.</p>`;
   const pal = palette.map(p=>`<span class="pill" style="cursor:pointer" title="${esc(p.usage)}" onclick='insertWord(${JSON.stringify(p.english)})'>${esc(p.english)} · ${esc(p.chinese)}</span>`).join(" ");
   const plainScaffold = stripScaffoldTags(transPackage.scaffold || "");
   let html = "";
   if(transMode==="e2c"){
-    if(level==="1") html = `<div class="card"><h2>Full intake scaffold</h2>${structureLine}${grammarLine}<h2 style="margin-top:14px">Hard words</h2>${hardWords}</div>`;
-    else if(level==="2") html = `<div class="card"><h2>Hints only</h2>${grammarLine}<h2 style="margin-top:14px">Hard words</h2>${hardWords}</div>`;
+    if(level==="1") html = `<div class="card"><h2>Full intake scaffold</h2>${wordHintLine}${structureLine}${grammarLine}<h2 style="margin-top:14px">Hard words</h2>${hardWords}</div>`;
+    else if(level==="2") html = `<div class="card"><h2>Hints only</h2>${wordHintLine}${grammarLine}<h2 style="margin-top:14px">Hard words</h2>${hardWords}</div>`;
     else if(level==="3") html = `<div class="card"><h2>Sentence split</h2>${(transPackage.text_en||"").split(/(?<=[.!?])\s+/).filter(Boolean).map(s=>`<p class="prompt">${esc(s)}</p>`).join("")}</div>`;
     else html = `<div class="card"><h2>Bare E→C</h2><p class="muted">No hints shown. Translate from the source box above.</p></div>`;
     $("transAnswerLabel").textContent="Your Chinese translation";
   } else {
-    if(level==="1") html = `<div class="card"><h2>Thick scaffold — Chinese in English word order</h2><p class="render">${esc(transPackage.scaffold||"")}</p>${grammarLine}${structureLine}<h2 style="margin-top:16px">Word palette — click to use it · 英-中-用在哪</h2><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${pal}</div></div>`;
-    else if(level==="2") html = `<div class="card"><h2>Hints only</h2>${structureLine}${grammarLine}<h2 style="margin-top:14px">Hard words</h2>${hardWords}</div>`;
+    if(level==="1") html = `<div class="card"><h2>Thick scaffold — Chinese in English word order</h2>${wordHintLine}<p class="render">${esc(transPackage.scaffold||"")}</p>${grammarLine}${structureLine}<h2 style="margin-top:16px">Word palette — click to use it · 英-中-用在哪</h2><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${pal}</div></div>`;
+    else if(level==="2") html = `<div class="card"><h2>Hints only</h2>${wordHintLine}${structureLine}${grammarLine}<h2 style="margin-top:14px">Hard words</h2>${hardWords}</div>`;
     else if(level==="3") html = `<div class="card"><h2>Chinese in English word order — no tags, no palette</h2><p class="render">${esc(plainScaffold)}</p></div>`;
     else html = `<div class="card"><h2>Bare C→E</h2><p class="muted">No scaffold shown. Reconstruct from memory, then check against the original.</p></div>`;
     $("transAnswerLabel").textContent="Your English reconstruction";

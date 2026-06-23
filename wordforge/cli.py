@@ -7,6 +7,7 @@
     python -m wordforge.cli session 10       # cap at 10 drills
     python -m wordforge.cli weak             # your missed / weak words + wrong answers
     python -m wordforge.cli use perfunctory  # write a sentence, get it graded
+    python -m wordforge.cli translate        # local corpus translation practice
     python -m wordforge.cli stats
     python -m wordforge.cli list
 """
@@ -241,6 +242,18 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_translate(args: argparse.Namespace) -> int:
+    from . import translate_terminal
+
+    argv = []
+    if args.id:
+        argv += ["--id", args.id]
+    argv += ["--mode", args.mode, "--support", str(args.support)]
+    if args.claude_grade:
+        argv.append("--claude-grade")
+    return translate_terminal.main(argv)
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="wordforge", description="WordForge CLI")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -255,6 +268,12 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("weak", help="show your missed/weak words and recent wrong answers").set_defaults(fn=cmd_weak)
     sub.add_parser("stats").set_defaults(fn=cmd_stats)
     sub.add_parser("list").set_defaults(fn=cmd_list)
+    pt = sub.add_parser("translate", help="local corpus E->C / back-translation practice")
+    pt.add_argument("--id")
+    pt.add_argument("--mode", choices=["e2c", "back"], default="back")
+    pt.add_argument("--support", type=int, default=1)
+    pt.add_argument("--claude-grade", action="store_true")
+    pt.set_defaults(fn=cmd_translate)
 
     args = p.parse_args(argv)
     try:

@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from . import drills, express, grounding, listening, scheduler, store, translate, writing
+from . import corpus, drills, express, grounding, listening, scheduler, store, translate, writing
 
 PORT = int(os.environ.get("WORDFORGE_STUDIO_PORT", "8764"))
 
@@ -238,6 +238,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 _json_response(self, {"ok": True})
             elif u.path == "/api/writing/prompts":
                 _json_response(self, _prompts_payload())
+            elif u.path == "/api/translate/corpus":
+                _json_response(self, corpus.list_passages())
+            elif u.path == "/api/translate/corpus/get":
+                pid = qs.get("id", [""])[0]
+                passage = corpus.get_passage(pid)
+                if passage is None:
+                    _json_response(self, {"error": f"passage not found: {pid}"}, 404)
+                else:
+                    _json_response(self, passage)
             else:
                 self.send_error(404)
         except Exception as e:

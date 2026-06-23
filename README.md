@@ -105,11 +105,50 @@ This is the main UI entry point for notched MacBooks: one local browser app, one
 port, no menu-bar hiding. It wraps the existing engines instead of replacing
 them: vocab drills use the same store/scheduler, Expression uses the same
 Claude structured-output ladder, Listening Reader uses the same whisper.cpp
-cache, and Writing uses the same rubric grader.
+cache, Writing uses the same rubric grader, and Translate uses the same
+translation/back-translation grader plus a pre-baked passage corpus.
 
 ```
 ./.venv/bin/python -m wordforge.studio    # serves http://localhost:8764
 ```
+
+## Translate corpus (中英桥)
+
+The Translate tab now supports both practice loops:
+
+- **E→C · 理解:** pick or paste English, get difficult-word hints, translate
+  sentence by sentence, then grade for accuracy, naturalness, and omissions.
+- **回译 C→E · 产出:** pick a passage, rebuild the English from a Chinese
+  word-order scaffold, then compare against the original and add missed
+  words/structures to WordForge.
+
+Corpus practice has four support levels:
+
+1. tense tags + Chinese hints + clickable word palette;
+2. only difficult words and syntax hints;
+3. only Chinese-in-English-order scaffold;
+4. bare translation / bare back-translation.
+
+The committed seed corpus lives at `data/corpus/passages.jsonl`. It starts with
+copyright-clean public-domain selections from Emerson, Thoreau, Douglass, and
+Mary Shelley, chosen for dense, idea-bearing prose.
+
+Local textbook passages, such as OCR from California Edge C, are supported but
+not committed:
+
+```
+./.venv/bin/python scripts/ocr_edge_pages.py <edge-pdf> --pages 12-13 \
+  --id edge-c-unit-01-p012-013 --title "Unit 1 selection" \
+  --structure "relative clause" --structure "past perfect"
+
+./.venv/bin/python scripts/build_corpus.py \
+  --source-jsonl data/corpus/sources_local/edge_sources.jsonl \
+  --out data/corpus/local/edge_passages.jsonl
+```
+
+Studio automatically loads completed local packages from `data/corpus/local/`.
+Raw OCR rows stay in `data/corpus/sources_local/`; both directories are
+gitignored.
 
 ## Expression Ladder (web app — figurative range)
 

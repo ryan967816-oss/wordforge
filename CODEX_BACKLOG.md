@@ -23,8 +23,9 @@ actions without his approval.
 ## P1 — Unify into one UI app (the "有 UI 的 app" Ming asked for)
 **Status.** Landed initial studio shell in `wordforge/studio.py` plus
 `run_studio.command`: Vocab, Expression, Listening Reader, Writing, and Stats now
-share one local web app at `:8764`. Remaining P1 polish can continue in small
-passes without changing the underlying engines.
+share one local web app at `:8764`. Translate is also wired into Studio with a
+corpus picker, four support levels, and E->C / C->E loops. Remaining P1 polish
+can continue in small passes without changing the underlying engines.
 
 **Goal.** One local web app (a "WordForge Studio" shell at a single port) with a
 left nav hosting: Vocab drill, Expression ladder, Listening reader, Writing,
@@ -71,6 +72,12 @@ into a personal "image bank", then spaced-repeat producing them.
 **Acceptance.** Ming can save a rendering and later be drilled to reproduce it.
 
 ## P6 — Reading ingestion (Edge PDF → study material)
+**Status.** First corpus-backed Translate slice landed: committed public-domain
+seed corpus in `data/corpus/passages.jsonl`; Studio loads it through
+`/api/translate/corpus`; local Edge/textbook passages can be built into
+gitignored `data/corpus/local/*.jsonl`. Remaining P6 is scale and richer Edge
+selection indexing.
+
 **Goal.** Paste/point at an Edge selection → auto-extract target vocabulary into
 WordForge + generate comprehension/cloze + listening questions (rebuild the
 adapted Q-set Ming deleted).

@@ -14,7 +14,7 @@ judgment and local whisper.cpp for speech.
 | **Vocabulary** (productive + nuance) | summon/choose the exact word; synonym/antonym discrimination | `wordforge.cli` + `wordforge.app` | menu-bar + CLI | ✅ |
 | **Writing / Expression** | render a thought; figurative range (the "sapphire vs lake" gap) | `wordforge.express` (ladder), `wordforge.writing` (essays) | studio + web + CLI | ✅ |
 | **Listening** | parse the speech stream; dictation + read-along | `wordforge.listening` (dictation), `wordforge.reader` (synced transcript) | studio + web + CLI | ✅ |
-| **Reading** | volume of comprehensible input → the vocabulary tail | (his Edge corpus; ingestion tool = backlog) | — | ⛏ backlog |
+| **Reading / Translation bridge** | comprehensible input → reconstructive output; text structure + vocabulary tail | `wordforge.translate`, `wordforge.corpus` | studio | ✅ seed + local OCR path |
 | **Speaking** | automaticity; shadowing; pronunciation | (shadowing mode = backlog) | — | ⛏ backlog |
 
 The honest framing throughout: **these tools accelerate the *deliberate* slice;
@@ -57,10 +57,13 @@ wordforge/
   app.py         menu-bar app (rumps) + hotkey; LaunchAgent-resident; Dock-hidden
   writing.py     essay trainer (6-dim rubric); CLI; discovers ~/Documents/toefl prompts
   express.py     EXPRESSION-LADDER web app (:8766) — concept→image-ladder + grade attempt
+  translate.py   中英桥 engine — E→C prep/grade + C→E scaffold/grade
+  corpus.py      passage corpus loader — committed public seed + gitignored local textbook packages
   listening.py   dictation trainer (whisper.cpp) — CLI
   reader.py      LISTENING READER web app (:8765) — synced scrolling transcript + seek + PDF jump
-  studio.py      WORDFORGE STUDIO web app (:8764) — Vocab + Expression + Reader + Writing + Stats
-data/            lexicon.jsonl, reviews.jsonl, writing/, express/  (git-versioned)
+  studio.py      WORDFORGE STUDIO web app (:8764) — Vocab + Expression + Reader + Writing + Translate + Stats
+data/            lexicon.jsonl, reviews.jsonl, writing/, express/, corpus/passages.jsonl  (git-versioned)
+data/corpus/local/ and data/corpus/sources_local/  private textbook packages/OCR rows (gitignored)
 models/          ggml-base.en.bin (gitignored)         data/listening/  (wav+transcript cache, gitignored)
 run_studio.command  install_listening.command  setup_app.py / build_app.command  install/uninstall_login_item.command
 ```

@@ -1,5 +1,11 @@
 # Codex Brief — build the passage corpus (中英桥 training content)
 
+Status 2026-06-23: first slice landed. `data/corpus/passages.jsonl` now has 6
+public-domain seed packages; Studio has `/api/translate/corpus`, a passage
+picker, and four support levels. The remaining job is scale: grow toward 50-100
+copyright-clean public passages and add local Edge C packages under gitignored
+`data/corpus/local/`.
+
 Handoff to Codex. Read `ARCHITECTURE.md` + `CODEX_BACKLOG.md` first. This brief is
 self-contained: build a large, pre-baked **corpus of translation-training passages**
 so the Translate pillar (and Reader/Writing/Vocab) ship with rich ready content

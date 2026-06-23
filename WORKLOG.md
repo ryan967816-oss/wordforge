@@ -1,5 +1,88 @@
 # WordForge Worklog
 
+## 2026-06-23 - Corpus-backed Translate Loop
+
+Operator: Codex.
+
+Context:
+- Ming asked for two translation loops inside Studio:
+  - A: English -> Chinese with hard-word hints, sentence-by-sentence grading, and
+    accuracy/naturalness/omission feedback.
+  - B: Chinese-word-order back-translation, then comparison against the original,
+    with missed words/structures feeding WordForge.
+- Ming also asked to begin turning Edge/public texts into a corpus and to make
+  the support progressively thinner: thick scaffold -> hints -> word-order
+  Chinese -> bare translation/back-translation.
+
+Current state:
+- Studio Translate now has a "Pick a passage" corpus selector and four support
+  levels.
+- The committed seed corpus contains 6 copyright-clean public-domain passages
+  from Emerson, Thoreau, Douglass, and Mary Shelley.
+- Local Edge/textbook OCR is supported through gitignored local directories, so
+  private study text can be used without publishing copyrighted passage text.
+
+Files changed:
+- `data/corpus/passages.jsonl` - 6 pre-baked passage packages with glosses,
+  tense-tagged scaffolds, palettes, grammar notes, and vocab targets.
+- `data/corpus/README.md` - explains committed public corpus vs local textbook
+  corpus.
+- `wordforge/corpus.py` - loads committed passages plus
+  `data/corpus/local/*.jsonl`.
+- `wordforge/studio.py` - adds `/api/translate/corpus` and
+  `/api/translate/corpus/get`.
+- `wordforge/studio_page.html` - adds passage picker, support levels, pre-baked
+  E->C/back-translation rendering, clickable palette, and hides the English
+  source during selected-corpus back-translation.
+- `scripts/build_corpus.py` - validates the corpus and can bake source passages
+  into full packages.
+- `scripts/ocr_edge_pages.py` - OCRs selected local Edge PDF pages into
+  gitignored source rows for later baking.
+- `.gitignore` - ignores local textbook packages and raw OCR rows.
+- `README.md` / `ARCHITECTURE.md` - documents the corpus-backed Translate path.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile wordforge/corpus.py wordforge/studio.py wordforge/translate.py scripts/build_corpus.py scripts/ocr_edge_pages.py
+# pass
+
+./.venv/bin/python scripts/build_corpus.py --validate
+# count: 6; ids: emerson-self-reliance-trust-thyself, emerson-self-reliance-consistency,
+# thoreau-walden-live-deliberately, thoreau-walden-quiet-desperation,
+# douglass-silver-trump-freedom, shelley-frankenstein-creator-light
+
+WORDFORGE_NO_OPEN=1 WORDFORGE_STUDIO_PORT=8774 ./.venv/bin/python -m wordforge.studio
+# served http://127.0.0.1:8774
+
+curl http://127.0.0.1:8774/api/translate/corpus
+# returned 6 passage summaries
+
+curl 'http://127.0.0.1:8774/api/translate/corpus/get?id=thoreau-walden-live-deliberately'
+# returned the full pre-baked package
+```
+
+Browser QA:
+- Translate tab shows 6 passages in "Pick a passage".
+- Selecting a passage instantly renders support with no live Claude call.
+- Back-translation level 1 shows tagged scaffold + grammar + structures +
+  clickable palette; clicking a palette phrase inserts it into the answer box.
+- Back-translation level 3 removes tense tags and hides the palette.
+- When a corpus passage is selected in back-translation mode, the original
+  English source box and "Make scaffold" button are hidden; the original remains
+  stored only for grading.
+
+Next action:
+- Grow `data/corpus/passages.jsonl` toward 50-100 public-domain passages.
+- Use `scripts/ocr_edge_pages.py` on specific Edge C selections, then bake them
+  into `data/corpus/local/edge_passages.jsonl` for private local practice.
+- Add structure filters once the corpus is larger.
+
+Boundaries:
+- Edge C scanned PDF text was not committed. Public repo content stays
+  copyright-clean; local textbook material belongs under gitignored
+  `data/corpus/local/`.
+- Live grading still uses Claude; pre-baked corpus support loads instantly.
+
 ## 2026-06-22 - P1 Studio Shell
 
 Operator: Codex.

@@ -340,9 +340,29 @@
               <button class="btn" id="tmA" onclick="setTransMode('e2c')">E→C · 理解</button>
               <button class="btn secondary" id="tmB" onclick="setTransMode('back')">回译 C→E · 产出</button>
             </div>
-            <div class="eyebrow" id="transHint" style="margin-bottom:8px">Paste English → I gloss the hard words → you translate to 中文</div>
-            <textarea id="transSrc" rows="4" placeholder="The scientist, who had spent decades chasing a single elusive particle, finally saw it flicker across the screen…"></textarea>
-            <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+            <div class="row" style="margin-bottom:12px">
+              <div class="grow">
+                <div class="eyebrow" style="margin-bottom:8px">Pick a passage</div>
+                <select id="corpusSelect" onchange="pickCorpusPassage()">
+                  <option value="">Paste your own passage…</option>
+                </select>
+              </div>
+              <div style="width:210px">
+                <div class="eyebrow" style="margin-bottom:8px">Support</div>
+                <select id="supportLevel" onchange="renderCorpusSupport()">
+                  <option value="1">1 · thick scaffold</option>
+                  <option value="2">2 · hints only</option>
+                  <option value="3">3 · word-order Chinese</option>
+                  <option value="4">4 · bare</option>
+                </select>
+              </div>
+            </div>
+            <div id="corpusMeta" class="muted" style="font-size:13px;margin:-4px 0 12px"></div>
+            <div id="transSrcWrap">
+              <div class="eyebrow" id="transHint" style="margin-bottom:8px">Paste English → I gloss the hard words → you translate to 中文</div>
+              <textarea id="transSrc" rows="4" placeholder="The scientist, who had spent decades chasing a single elusive particle, finally saw it flicker across the screen…"></textarea>
+            </div>
+            <div id="transStartRow" style="margin-top:12px;display:flex;align-items:center;gap:12px">
               <button class="btn" id="transStartBtn" onclick="transStart()">Prepare</button>
               <div id="transStatus" class="status" style="margin:0"></div>
             </div>
@@ -596,7 +616,7 @@ async function previewApi(path, opts){
 }
 
 /* ---- Translate (中英桥): E→C intake + back-translation production ---- */
-let transMode="e2c", transSrc="";
+let transMode="e2c", transSrc="", transPackage=null, corpusList=[];
 function setTransMode(m){
   transMode=m;
   $("tmA").className = m==="e2c" ? "btn" : "btn secondary";
@@ -606,9 +626,88 @@ function setTransMode(m){
     : "Paste English → I render it in Chinese with English word order → you rebuild the English original";
   $("transStartBtn").textContent = m==="e2c" ? "Prepare" : "Make scaffold";
   $("transPrep").innerHTML=""; $("transAnswerBox").style.display="none"; $("transGradeOut").innerHTML="";
+  syncSupportLabels();
+  syncTransSourceVisibility();
+  if(transPackage) renderCorpusSupport();
+}
+function syncSupportLabels(){
+  const labels = transMode==="e2c"
+    ? ["1 · full hints", "2 · hints only", "3 · sentence split", "4 · bare E→C"]
+    : ["1 · thick scaffold", "2 · hints only", "3 · word-order Chinese", "4 · bare C→E"];
+  [...$("supportLevel").options].forEach((o, i)=>{ o.textContent = labels[i] || o.textContent; });
+}
+function syncTransSourceVisibility(){
+  const hideSource = transMode==="back" && !!transPackage;
+  $("transSrcWrap").style.display = hideSource ? "none" : "block";
+  $("transStartRow").style.display = hideSource ? "none" : "flex";
+}
+async function loadCorpus(){
+  try{
+    corpusList = await api("/api/translate/corpus");
+    $("corpusSelect").innerHTML = `<option value="">Paste your own passage…</option>` +
+      corpusList.map(p=>`<option value="${esc(p.id)}">${esc(p.level)} · ${esc(p.title)} — ${esc((p.target_structures||[]).slice(0,2).join(", "))}</option>`).join("");
+  }catch(e){
+    $("corpusSelect").innerHTML = `<option value="">Corpus unavailable</option>`;
+  }
+}
+async function pickCorpusPassage(){
+  const id=$("corpusSelect").value;
+  if(!id){
+    transPackage=null; $("corpusMeta").textContent=""; $("transPrep").innerHTML=""; $("transAnswerBox").style.display="none";
+    syncTransSourceVisibility();
+    return;
+  }
+  $("transStatus").className="status think"; $("transStatus").textContent="Loading pre-baked passage…";
+  try{
+    transPackage = await api("/api/translate/corpus/get?id="+encodeURIComponent(id));
+    transSrc = transPackage.text_en || "";
+    $("transSrc").value = transSrc;
+    $("corpusMeta").textContent = `${transPackage.source} · ${transPackage.why_selected || ""}`;
+    syncTransSourceVisibility();
+    renderCorpusSupport();
+    $("transStatus").textContent="";
+  }catch(e){
+    $("transStatus").className="status err"; $("transStatus").textContent=e.message;
+  }
+}
+function renderCorpusSupport(){
+  if(!transPackage) return false;
+  syncTransSourceVisibility();
+  const level = $("supportLevel").value || "1";
+  const structures = transPackage.target_structures || [];
+  const glosses = transPackage.glosses || [];
+  const palette = transPackage.palette || [];
+  const grammar = transPackage.grammar || [];
+  const structureLine = structures.length ? `<p class="muted" style="font-size:13px"><b>structures:</b> ${structures.map(esc).join(" · ")}</p>` : "";
+  const grammarLine = grammar.length ? `<p class="muted" style="font-size:13px"><b>watch:</b> ${grammar.map(esc).join(" · ")}</p>` : "";
+  const hardWords = glosses.length ? `<div class="list">${glosses.map(w=>`<div class="item"><div><b>${esc(w.word)}</b><div class="sub">${esc(w.hint)}</div></div><span class="tag">${esc(w.chinese)}</span></div>`).join("")}</div>` : `<p class="muted">No hard-word hints for this passage.</p>`;
+  const pal = palette.map(p=>`<span class="pill" style="cursor:pointer" title="${esc(p.usage)}" onclick='insertWord(${JSON.stringify(p.english)})'>${esc(p.english)} · ${esc(p.chinese)}</span>`).join(" ");
+  const plainScaffold = stripScaffoldTags(transPackage.scaffold || "");
+  let html = "";
+  if(transMode==="e2c"){
+    if(level==="1") html = `<div class="card"><h2>Full intake scaffold</h2>${structureLine}${grammarLine}<h2 style="margin-top:14px">Hard words</h2>${hardWords}</div>`;
+    else if(level==="2") html = `<div class="card"><h2>Hints only</h2>${grammarLine}<h2 style="margin-top:14px">Hard words</h2>${hardWords}</div>`;
+    else if(level==="3") html = `<div class="card"><h2>Sentence split</h2>${(transPackage.text_en||"").split(/(?<=[.!?])\s+/).filter(Boolean).map(s=>`<p class="prompt">${esc(s)}</p>`).join("")}</div>`;
+    else html = `<div class="card"><h2>Bare E→C</h2><p class="muted">No hints shown. Translate from the source box above.</p></div>`;
+    $("transAnswerLabel").textContent="Your Chinese translation";
+  } else {
+    if(level==="1") html = `<div class="card"><h2>Thick scaffold — Chinese in English word order</h2><p class="render">${esc(transPackage.scaffold||"")}</p>${grammarLine}${structureLine}<h2 style="margin-top:16px">Word palette — click to use it · 英-中-用在哪</h2><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${pal}</div></div>`;
+    else if(level==="2") html = `<div class="card"><h2>Hints only</h2>${structureLine}${grammarLine}<h2 style="margin-top:14px">Hard words</h2>${hardWords}</div>`;
+    else if(level==="3") html = `<div class="card"><h2>Chinese in English word order — no tags, no palette</h2><p class="render">${esc(plainScaffold)}</p></div>`;
+    else html = `<div class="card"><h2>Bare C→E</h2><p class="muted">No scaffold shown. Reconstruct from memory, then check against the original.</p></div>`;
+    $("transAnswerLabel").textContent="Your English reconstruction";
+  }
+  $("transPrep").innerHTML = html;
+  $("transAnswerBox").style.display="block";
+  $("transGradeOut").innerHTML="";
+  return true;
+}
+function stripScaffoldTags(s){
+  return String(s||"").replace(/\[[^\]]+\]/g, "").replace(/\s+/g, " ").trim();
 }
 async function transStart(){
   transSrc=$("transSrc").value.trim(); if(!transSrc) return;
+  if(transPackage && transPackage.text_en===transSrc && renderCorpusSupport()) return;
   $("transStatus").className="status think"; $("transStatus").textContent="Thinking…";
   $("transPrep").innerHTML=""; setBusy("transStartBtn",true);
   try{
@@ -666,6 +765,12 @@ async function addMissed(words){
 }
 function insertWord(w){ const t=$("transAnswer"); t.value += (t.value && !/\s$/.test(t.value) ? " " : "") + w; t.focus(); }
 setTransMode("e2c");
+loadCorpus().catch(()=>{});
+$("transSrc").addEventListener("input",()=>{
+  if(transPackage && $("transSrc").value!==transPackage.text_en){
+    transPackage=null; $("corpusSelect").value=""; $("corpusMeta").textContent=""; syncTransSourceVisibility();
+  }
+});
 </script>
 </body>
 </html>

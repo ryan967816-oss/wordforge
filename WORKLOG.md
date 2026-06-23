@@ -119,6 +119,35 @@ Browser QA:
 - Back-translation keeps the source area visible and also shows `WORD HINTS`,
   scaffold, grammar, structures, and palette.
 
+### Follow-up fix - Native Claude Design window is the primary UI
+
+Context:
+- Ming clarified that the desired local UI is not terminal-first; the existing
+  Claude Design local window (`run_native.command`) should be the primary
+  surface.
+
+Changes:
+- `wordforge/window.py` now checks `/api/translate/corpus` before opening the
+  native pywebview window.
+- If no current backend is running, it starts Studio in-process.
+- If a stale WordForge backend is occupying `:8764` without the corpus API, it
+  clears that port and starts the current backend, so the native window is not
+  stuck with old routes.
+- `README.md` now names `run_native.command` as the main Studio UI and
+  `run_studio.command` as the browser fallback.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile wordforge/window.py
+# pass
+
+./.venv/bin/python - <<'PY'
+from wordforge import window
+print(window._backend_ready())
+PY
+# True
+```
+
 ## 2026-06-22 - P1 Studio Shell
 
 Operator: Codex.

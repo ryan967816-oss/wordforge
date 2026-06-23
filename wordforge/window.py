@@ -14,13 +14,59 @@ Requires pywebview:  pip install pywebview
 from __future__ import annotations
 
 import os
+import subprocess
 import threading
 import time
+import urllib.error
+import urllib.request
 
 # Make the studio server NOT pop open a browser tab — we host it in our window.
 os.environ.setdefault("WORDFORGE_NO_OPEN", "1")
 
 from . import studio  # noqa: E402  (after env var is set)
+
+
+def _backend_ready() -> bool:
+    """The native shell needs the current Studio API, not merely any server."""
+    url = f"http://127.0.0.1:{studio.PORT}/api/translate/corpus"
+    try:
+        with urllib.request.urlopen(url, timeout=1.0) as r:
+            return r.status == 200
+    except (OSError, urllib.error.URLError):
+        return False
+
+
+def _stop_stale_backend() -> None:
+    """Clear an old WordForge Studio process from this port before opening native."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-tiTCP:%d" % studio.PORT, "-sTCP:LISTEN"],
+            text=True,
+            capture_output=True,
+            check=False,
+        ).stdout
+    except OSError:
+        return
+    for raw in out.splitlines():
+        pid = raw.strip()
+        if pid:
+            subprocess.run(["kill", pid], check=False)
+    if out.strip():
+        time.sleep(0.8)
+
+
+def _ensure_backend() -> None:
+    if _backend_ready():
+        return
+    _stop_stale_backend()
+    if _backend_ready():
+        return
+    threading.Thread(target=studio.main, daemon=True).start()
+    for _ in range(30):
+        if _backend_ready():
+            return
+        time.sleep(0.1)
+    raise RuntimeError(f"WordForge backend did not become ready on :{studio.PORT}")
 
 
 class _Api:
@@ -52,9 +98,10 @@ def run() -> None:
             "or just double-click run_native.command."
         )
 
-    # 1) start the Studio server (blocking serve_forever) in the background
-    threading.Thread(target=studio.main, daemon=True).start()
-    time.sleep(0.8)  # let it bind the port
+    # 1) make sure the current Studio server is ready. If a stale server from an
+    #    older run is still on the port, replace it so the native window has the
+    #    corpus-backed Translate API.
+    _ensure_backend()
 
     url = f"http://localhost:{studio.PORT}"
     api = _Api()

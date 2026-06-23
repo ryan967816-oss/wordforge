@@ -26,7 +26,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from . import corpus, drills, express, grounding, listening, scheduler, store, translate, writing
+from . import (
+    corpus,
+    drills,
+    express,
+    grounding,
+    listening,
+    scheduler,
+    store,
+    translate,
+    translate_history,
+    writing,
+)
 
 PORT = int(os.environ.get("WORDFORGE_STUDIO_PORT", "8764"))
 
@@ -283,13 +294,53 @@ class Handler(http.server.BaseHTTPRequestHandler):
             elif self.path == "/api/translate/prep":
                 _json_response(self, translate.prep_e2c(str(req.get("passage", ""))))
             elif self.path == "/api/translate/grade_e2c":
-                _json_response(self, translate.grade_e2c(str(req.get("passage", "")),
-                                                         str(req.get("your_chinese", ""))))
+                source = str(req.get("passage", ""))
+                answer = str(req.get("your_chinese", ""))
+                result = translate.grade_e2c(source, answer)
+                result["recorded"] = translate_history.record_attempt(
+                    mode="e2c",
+                    source=source,
+                    answer=answer,
+                    result=result,
+                    passage_id=str(req.get("passage_id", "")),
+                    support=req.get("support", ""),
+                    sentence_index=req.get("sentence_index"),
+                )
+                _json_response(self, result)
             elif self.path == "/api/translate/scaffold":
                 _json_response(self, translate.make_scaffold(str(req.get("passage", ""))))
             elif self.path == "/api/translate/grade_back":
-                _json_response(self, translate.grade_back(str(req.get("original", "")),
-                                                          str(req.get("your_english", ""))))
+                source = str(req.get("original", ""))
+                answer = str(req.get("your_english", ""))
+                result = translate.grade_back(source, answer)
+                result["recorded"] = translate_history.record_attempt(
+                    mode="back",
+                    source=source,
+                    answer=answer,
+                    result=result,
+                    passage_id=str(req.get("passage_id", "")),
+                    support=req.get("support", ""),
+                    sentence_index=req.get("sentence_index"),
+                )
+                _json_response(self, result)
+            elif self.path == "/api/translate/grade_line":
+                mode = str(req.get("mode", "back"))
+                source = str(req.get("source", ""))
+                answer = str(req.get("answer", ""))
+                if mode == "e2c":
+                    result = translate.grade_e2c(source, answer)
+                else:
+                    result = translate.grade_back(source, answer)
+                result["recorded"] = translate_history.record_attempt(
+                    mode=mode,
+                    source=source,
+                    answer=answer,
+                    result=result,
+                    passage_id=str(req.get("passage_id", "")),
+                    support=req.get("support", ""),
+                    sentence_index=req.get("sentence_index"),
+                )
+                _json_response(self, result)
             else:
                 self.send_error(404)
         except Exception as e:

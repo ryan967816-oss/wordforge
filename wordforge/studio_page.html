@@ -207,6 +207,12 @@
   .fix p{margin:0; font:400 14px/1.5 var(--sans); color:var(--frost-300);}
   .hintline{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0 0 14px;}
   .hintline b{font:600 12px var(--sans); color:var(--frost-500); text-transform:uppercase; letter-spacing:.08em;}
+  .line-answer{border:1px solid var(--edge); border-radius:6px; padding:12px; margin:10px 0; background:var(--glass-well);}
+  .line-answer .top{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;}
+  .line-answer .top b{font:600 12px var(--sans); letter-spacing:.05em; text-transform:uppercase; color:var(--frost-500);}
+  .slotline{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px;}
+  .slotline .pill.warn{border-color:rgba(201,166,107,.35); color:var(--warn);}
+  .line-result{font:400 13px/1.45 var(--sans); color:var(--frost-400); margin-top:8px;}
 
   @media (max-width:840px){
     .app{grid-template-columns:1fr; height:auto;}
@@ -372,8 +378,13 @@
           <div id="transPrep"></div>
           <div id="transAnswerBox" class="card" style="display:none">
             <h2 id="transAnswerLabel">Your translation</h2>
+            <div id="transLineBox"></div>
+            <div class="eyebrow" style="margin:12px 0 8px">Whole answer / optional combined draft</div>
             <textarea id="transAnswer" class="serif" rows="4"></textarea>
-            <div style="margin-top:12px"><button class="btn secondary" id="transGradeBtn" onclick="transGrade()">Check</button></div>
+            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn secondary" id="transGradeBtn" onclick="transGrade()">Check all</button>
+              <span class="muted" style="font-size:13px">Line checks and all-checks are recorded to your local error log.</span>
+            </div>
             <div id="transGradeOut"></div>
           </div>
         </section>
@@ -701,12 +712,64 @@ function renderCorpusSupport(){
   }
   $("transPrep").innerHTML = html;
   $("transAnswerBox").style.display="block";
+  renderLineAnswers();
   $("transGradeOut").innerHTML="";
   return true;
 }
 function stripScaffoldTags(s){
   return String(s||"").replace(/\[[^\]]+\]/g, "").replace(/\s+/g, " ").trim();
 }
+function splitSentences(s){
+  return String(s||"").split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean);
+}
+function phraseInSentence(phrase, sentence){
+  const p=String(phrase||"").toLowerCase().replace(/[^\w\s'-]/g," ").replace(/\s+/g," ").trim();
+  const s=String(sentence||"").toLowerCase().replace(/[^\w\s'-]/g," ").replace(/\s+/g," ").trim();
+  if(!p) return false;
+  if(s.includes(p)) return true;
+  const tokens=p.split(/\s+/).filter(w=>w.length>2 && !["with","that","what","into","from"].includes(w));
+  if(tokens.length===1) return s.split(/\s+/).includes(tokens[0]);
+  return tokens.length>1 && tokens.every(w=>s.split(/\s+/).includes(w));
+}
+function starterHint(sentence){
+  const s=String(sentence||"").trim();
+  const m=s.match(/^(With|For|To|In|On|Of|By|From)\s+([^,.;:]{1,60})/i);
+  if(!m) return "";
+  const prep=m[1].toLowerCase();
+  const gloss={with:"对于/在...方面/带着",for:"为了/对于",to:"对/向/为了",in:"在...中/用",on:"在...上/关于",of:"...的",by:"被/通过",from:"从/由"}[prep] || "fronted phrase";
+  return `${m[1]} ${m[2].trim()} = fronted phrase · ${gloss}`;
+}
+function lineHints(sentence){
+  if(!transPackage) return [];
+  const hits=(transPackage.palette||[]).filter(p=>phraseInSentence(p.english, sentence))
+    .map(p=>({text:`${p.english} = ${p.chinese}`, warn:false, title:p.usage||""}));
+  const starter=starterHint(sentence);
+  if(starter) hits.unshift({text:starter, warn:true, title:"sentence-opening structure"});
+  return hits;
+}
+function renderLineAnswers(){
+  const box=$("transLineBox");
+  if(!box) return;
+  const sentences=splitSentences(transSrc);
+  if(!sentences.length){ box.innerHTML=""; return; }
+  box.innerHTML=sentences.map((s,i)=>{
+    const chips=lineHints(s).map(h=>`<span class="pill ${h.warn?"warn":""}" title="${esc(h.title)}">${esc(h.text)}</span>`).join("");
+    return `<div class="line-answer" data-line="${i}">
+      <div class="top"><b>Sentence ${i+1}</b><button class="btn secondary" id="lineCheck${i}" onclick="checkTransLine(${i})">Check line</button></div>
+      ${chips?`<div class="slotline">${chips}</div>`:""}
+      <textarea class="serif trans-line" data-index="${i}" rows="3" placeholder="${transMode==="e2c"?"中文翻译":"English reconstruction"}" oninput="syncWholeAnswer()"></textarea>
+      <div class="line-result" id="lineResult${i}"></div>
+    </div>`;
+  }).join("");
+}
+function collectLineAnswers(){
+  return [...document.querySelectorAll(".trans-line")].map(t=>t.value.trim());
+}
+function syncWholeAnswer(){
+  const lines=collectLineAnswers();
+  if(lines.some(Boolean)) $("transAnswer").value=lines.filter(Boolean).join(transMode==="e2c" ? "\n" : " ");
+}
+function supportValue(){ return $("supportLevel") ? $("supportLevel").value : ""; }
 async function transStart(){
   transSrc=$("transSrc").value.trim(); if(!transSrc) return;
   if(transPackage && transPackage.text_en===transSrc && renderCorpusSupport()) return;
@@ -733,16 +796,18 @@ async function transStart(){
       </div>`;
       $("transAnswerLabel").textContent="Your English reconstruction (pick from the palette above)";
     }
-    $("transStatus").textContent=""; $("transAnswerBox").style.display="block";
+    $("transStatus").textContent=""; $("transAnswerBox").style.display="block"; renderLineAnswers();
   }catch(e){$("transStatus").className="status err"; $("transStatus").textContent=e.message;}
   finally{setBusy("transStartBtn",false);}
 }
 async function transGrade(){
+  syncWholeAnswer();
   const ans=$("transAnswer").value.trim(); if(!ans) return;
   $("transGradeOut").innerHTML=`<div class="feedback">Grading…</div>`; setBusy("transGradeBtn",true);
   try{
     const path = transMode==="e2c" ? "/api/translate/grade_e2c" : "/api/translate/grade_back";
-    const body = transMode==="e2c" ? {passage:transSrc, your_chinese:ans} : {original:transSrc, your_english:ans};
+    const common={passage_id:transPackage?.id||"", support:supportValue()};
+    const body = transMode==="e2c" ? {passage:transSrc, your_chinese:ans, ...common} : {original:transSrc, your_english:ans, ...common};
     const d=await api(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
     let h=`<div class="feedback ${d.score==='off'?'err':'ok'}"><b>${esc(d.score)}</b><div class="body">${esc(d.overall||d.feedback||"")}</div></div>`;
     const lines = d.sentences || d.lines || [];
@@ -754,9 +819,33 @@ async function transGrade(){
     const structs=(d.missed_structures||[]); if(structs.length) h+=`<p class="muted" style="margin-top:8px;font-size:13px"><b>missed structures:</b> ${structs.map(esc).join(", ")}</p>`;
     const missed=(d.missed_words||[]);
     if(missed.length) h+=`<div style="margin-top:10px"><span class="muted" style="font-size:13px">missed words:</span> ${missed.map(esc).join(", ")} <button class="btn secondary" style="margin-left:8px" id="addMissedBtn" onclick='addMissed(${JSON.stringify(missed)})'>Add all to 库</button></div>`;
+    if(d.recorded) h+=`<p class="muted" style="margin-top:8px;font-size:13px">recorded locally: ${esc(d.recorded.error_count)} error item(s)</p>`;
     $("transGradeOut").innerHTML=h;
   }catch(e){$("transGradeOut").innerHTML=`<div class="feedback err">${esc(e.message)}</div>`;}
   finally{setBusy("transGradeBtn",false);}
+}
+async function checkTransLine(i){
+  const sentences=splitSentences(transSrc);
+  const answer=(document.querySelector(`.trans-line[data-index="${i}"]`)?.value||"").trim();
+  if(!answer || !sentences[i]) return;
+  const out=$("lineResult"+i);
+  out.textContent="Checking…"; setBusy("lineCheck"+i,true);
+  try{
+    const d=await api("/api/translate/grade_line",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      mode:transMode,
+      source:sentences[i],
+      answer,
+      passage_id:transPackage?.id||"",
+      support:supportValue(),
+      sentence_index:i
+    })});
+    const bad=(d.score==="off"||d.score==="partial");
+    const lines=d.sentences||d.lines||[];
+    const note=lines.map(l=>l.comment||l.note||l.correction||"").filter(Boolean).join(" · ") || d.feedback || d.overall || "";
+    out.innerHTML=`<span style="color:${bad?'var(--err)':'var(--ok)'}">${esc(d.score||"checked")}</span>${note?` · ${esc(note)}`:""}${d.recorded?` · recorded ${esc(d.recorded.error_count)} item(s)`:""}`;
+  }catch(e){
+    out.innerHTML=`<span style="color:var(--err)">${esc(e.message)}</span>`;
+  }finally{setBusy("lineCheck"+i,false);}
 }
 async function addMissed(words){
   setBusy("addMissedBtn",true);

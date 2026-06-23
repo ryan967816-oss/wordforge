@@ -72,16 +72,23 @@ Your API key is embedded in a user-only (`chmod 600`) plist under
 
 ### API key
 
-The grounding/grading uses the Claude API. Provide your Anthropic key one of two ways:
+The grounding/grading layer can use Claude or DeepSeek. Provider selection:
+
+- If `WORDFORGE_PROVIDER=deepseek` is set, or the Keychain provider is saved as
+  `deepseek`, WordForge uses DeepSeek (`deepseek-chat` by default).
+- Otherwise it uses Claude.
+
+Provide API keys one of these ways:
 
 - **Recommended:** open the menu-bar **Settings…** and paste your key — it's saved
-  to your macOS **Keychain** (this is the durable path, and the only one that
-  works for the optional `.app` bundle, which gets no shell environment).
-- Or export `ANTHROPIC_API_KEY` in your shell profile (`~/.zshrc`) before launching
-  via `run.command`.
+  to your macOS **Keychain** for Claude/Anthropic.
+- DeepSeek keys can also be saved to the same Keychain service by calling
+  `wordforge.config.set_deepseek_api_key(...)`; do not commit keys to files.
+- Or export `ANTHROPIC_API_KEY` / `DEEPSEEK_API_KEY` in your shell profile
+  (`~/.zshrc`) before launching via `run.command`.
 
-Default model is `claude-opus-4-8`. To cut grounding cost ~40% at a small quality
-tradeoff, launch with `WORDFORGE_MODEL=claude-sonnet-4-6`.
+Default Claude model is `claude-opus-4-8`; override with `WORDFORGE_MODEL`.
+Default DeepSeek model is `deepseek-chat`; override with `DEEPSEEK_MODEL`.
 
 ### Global hotkey & permissions
 
@@ -128,6 +135,9 @@ The Translate tab now supports both practice loops:
 - **回译 C→E · 产出:** pick a passage, rebuild the English from a Chinese
   word-order scaffold, then compare against the original and add missed
   words/structures to WordForge.
+- For corpus passages, the answer area is split into one input box per sentence.
+  Each sentence has local slot hints/palette chips, and you can `Check line` or
+  `Check all`.
 
 Corpus practice has four support levels:
 
@@ -156,6 +166,16 @@ not committed:
 Studio automatically loads completed local packages from `data/corpus/local/`.
 Raw OCR rows stay in `data/corpus/sources_local/`; both directories are
 gitignored.
+
+Every translation check is logged locally:
+
+```text
+data/translate_attempts.jsonl
+data/translate_errors.jsonl
+```
+
+These are the learner-owned records of what went wrong: wrong sentences, missed
+words, and missed structures. They can later power review drills or analytics.
 
 There is also a no-browser terminal fallback that uses the same local corpus and
 does not call Claude unless you ask for final grading:

@@ -16,6 +16,8 @@ to the schema, so the model can't ramble, and we save latency + tokens.
 from __future__ import annotations
 
 import json
+import re
+import urllib.request
 from typing import Any
 
 from . import config
@@ -197,6 +199,8 @@ def _client():
 
 
 def _structured_call(system: str, user: str, schema: dict[str, Any], max_tokens: int) -> dict[str, Any]:
+    if config.get_provider() == "deepseek":
+        return _deepseek_structured_call(system, user, schema, max_tokens)
     client = _client()
     try:
         resp = client.messages.create(
@@ -224,6 +228,60 @@ def _structured_call(system: str, user: str, schema: dict[str, Any], max_tokens:
         return json.loads(text)
     except json.JSONDecodeError as e:
         raise GroundingError(f"Could not parse model output as JSON: {e}") from e
+
+
+def _extract_json(text: str) -> dict[str, Any]:
+    text = text.strip()
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start >= 0 and end > start:
+            return json.loads(text[start:end + 1])
+        raise
+
+
+def _deepseek_structured_call(system: str, user: str, schema: dict[str, Any], max_tokens: int) -> dict[str, Any]:
+    key = config.get_deepseek_api_key()
+    if not key:
+        raise GroundingError("No DeepSeek API key found. Set DEEPSEEK_API_KEY or save one to Keychain.")
+    schema_text = json.dumps(schema, ensure_ascii=False)
+    payload = {
+        "model": config.get_deepseek_model(),
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    system
+                    + "\n\nReturn ONLY valid JSON. It must match this JSON Schema exactly:\n"
+                    + schema_text
+                ),
+            },
+            {"role": "user", "content": user},
+        ],
+        "max_tokens": max_tokens,
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"},
+    }
+    req = urllib.request.Request(
+        config.get_deepseek_base_url(),
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        raise GroundingError(f"DeepSeek API call failed: {e}") from e
+    try:
+        text = data["choices"][0]["message"]["content"]
+        return _extract_json(text)
+    except Exception as e:
+        raise GroundingError(f"Could not parse DeepSeek output as JSON: {e}") from e
 
 
 def ground_word(term: str) -> dict[str, Any]:

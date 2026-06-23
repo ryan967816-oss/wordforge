@@ -148,6 +148,54 @@ PY
 # True
 ```
 
+### Follow-up fix - DeepSeek provider, dense hints, per-line records
+
+Context:
+- Ming reported Claude/API calls failing and provided a DeepSeek key to use
+  locally.
+- Ming also noted that C->E is hard when the UI does not show which English slot
+  corresponds to each Chinese cue. He asked for denser hints and sentence-level
+  input boxes that can be checked separately or together.
+
+Changes:
+- `wordforge/config.py` supports provider selection and DeepSeek key/model/base
+  URL lookup. Provider/key can live in env or macOS Keychain.
+- `wordforge/grounding.py` routes `_structured_call` through DeepSeek when the
+  provider is `deepseek`, using JSON-only output with schema prompting.
+- The supplied DeepSeek key was saved to local macOS Keychain and provider was
+  set to `deepseek`; no key was committed.
+- `wordforge/translate_history.py` records every translation check to
+  `data/translate_attempts.jsonl` and extracts sentence/word/structure errors
+  to `data/translate_errors.jsonl`.
+- `wordforge/studio.py` records full-passage checks and adds
+  `/api/translate/grade_line` for sentence-level checks.
+- `wordforge/studio_page.html` splits corpus passages into per-sentence answer
+  boxes, adds local sentence-specific palette chips, flags fronted opening
+  phrases such as `With consistency`, and supports `Check line` plus `Check all`.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile wordforge/config.py wordforge/grounding.py wordforge/translate_history.py wordforge/studio.py
+# pass
+
+./.venv/bin/python - <<'PY'
+from wordforge import grounding
+schema={"type":"object","additionalProperties":False,"properties":{"ok":{"type":"boolean"},"word":{"type":"string"}},"required":["ok","word"]}
+print(grounding._structured_call('Return JSON only.', 'Return ok true and word test.', schema, 80))
+PY
+# {'ok': True, 'word': 'test'}
+
+curl -X POST http://127.0.0.1:8764/api/translate/grade_line ...
+# DeepSeek identified: For -> With changes meaning; missing simply; recorded 3 error items.
+```
+
+Browser QA:
+- Emerson `A Foolish Consistency` renders 4 per-sentence answer boxes.
+- Sentence 2 shows `With consistency ... = fronted phrase · 对于/在...方面/带着`
+  plus `has simply nothing to do`; unrelated sentence 1/3 chips no longer leak
+  into that sentence.
+- Clicking `Check line` calls DeepSeek and shows/records the line-level feedback.
+
 ## 2026-06-22 - P1 Studio Shell
 
 Operator: Codex.

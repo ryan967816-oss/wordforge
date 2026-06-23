@@ -620,8 +620,17 @@ async function transStart(){
       $("transAnswerLabel").textContent="Your Chinese translation";
     } else {
       const d=await api("/api/translate/scaffold",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({passage:transSrc})});
-      $("transPrep").innerHTML=`<div class="card"><h2>Chinese in English word order — rebuild the English</h2><p class="render">${esc(d.scaffold)}</p><p class="muted" style="font-size:13px;margin-top:8px">${esc(d.note)}</p></div>`;
-      $("transAnswerLabel").textContent="Your English reconstruction";
+      const grammar=(d.grammar||[]).length?`<p class="muted" style="font-size:13px;margin-top:8px"><b>watch:</b> ${d.grammar.map(esc).join(" · ")}</p>`:"";
+      const pal=(d.palette||[]).map(p=>`<span class="pill" style="cursor:pointer" title="${esc(p.usage)}" onclick='insertWord(${JSON.stringify(p.english)})'>${esc(p.english)} · ${esc(p.chinese)}</span>`).join(" ");
+      $("transPrep").innerHTML=`<div class="card">
+        <h2>Chinese in English word order — rebuild the English</h2>
+        <p class="render">${esc(d.scaffold)}</p>
+        ${grammar}
+        <p class="muted" style="font-size:13px;margin-top:6px">${esc(d.note)}</p>
+        <h2 style="margin-top:16px">Word palette — click to use it · 英-中-用在哪</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${pal}</div>
+      </div>`;
+      $("transAnswerLabel").textContent="Your English reconstruction (pick from the palette above)";
     }
     $("transStatus").textContent=""; $("transAnswerBox").style.display="block";
   }catch(e){$("transStatus").className="status err"; $("transStatus").textContent=e.message;}
@@ -655,6 +664,7 @@ async function addMissed(words){
   if(b){ b.textContent=words.length+" added ✓"; }
   refreshStats();
 }
+function insertWord(w){ const t=$("transAnswer"); t.value += (t.value && !/\s$/.test(t.value) ? " " : "") + w; t.focus(); }
 setTransMode("e2c");
 </script>
 </body>

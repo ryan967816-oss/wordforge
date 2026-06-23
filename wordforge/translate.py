@@ -82,17 +82,36 @@ def grade_e2c(passage: str, your_chinese: str) -> dict[str, Any]:
 
 SCAFFOLD_SCHEMA: dict[str, Any] = {
     "type": "object", "additionalProperties": False,
-    "properties": {"scaffold": {"type": "string"}, "note": {"type": "string"}},
-    "required": ["scaffold", "note"],
+    "properties": {
+        "scaffold": {"type": "string"},
+        "palette": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "properties": {"english": {"type": "string"}, "chinese": {"type": "string"},
+                           "usage": {"type": "string"}},
+            "required": ["english", "chinese", "usage"]}},
+        "grammar": {"type": "array", "items": {"type": "string"}},
+        "note": {"type": "string"},
+    },
+    "required": ["scaffold", "palette", "grammar", "note"],
 }
 
-SCAFFOLD_SYSTEM = """Render the English passage into Chinese that follows ENGLISH word order and \
-structure — a structural scaffold for back-translation. Translate the meaning phrase by phrase but \
-KEEP the English syntax: subject–verb–object order, relative clauses AFTER the noun, prepositional \
-phrases in English position, articles/auxiliaries reflected as needed. The result should read as \
-'English wearing Chinese words' — clear enough that a learner can reconstruct the original English, \
-yet deliberately NOT natural Chinese (that's the point: it exposes the word-order bridge). In `note`, \
-give one short line on the main structural difference this passage highlights (e.g. 定语后置/语序倒装)."""
+SCAFFOLD_SYSTEM = """Build a THICK scaffold for back-translation — maximize support so the learner \
+SELECTS and ASSEMBLES the English rather than recalling it from nothing. The goal is to lower the \
+barrier until the task is just touchable, NOT to add difficulty.
+
+1. scaffold: the passage rendered in Chinese that follows ENGLISH word order and structure (subject–\
+verb–object, relative clauses AFTER the noun, prepositional phrases in English position) — 'English \
+wearing Chinese words', deliberately NOT natural Chinese. CRUCIAL: because Chinese does not inflect, \
+annotate TENSE/ASPECT inline on EVERY verb with a compact tag so the learner can rebuild the exact \
+English — e.g. 花费[过去完成 had+pp] / 看见[一般过去] / 闪烁[现在分词 -ing] / 被证实[被动]. Also tag \
+structural pivots briefly inline (定语从句起点, 被动, 倒装, that-从句).
+2. palette: a COMPREHENSIVE list of the usable words/phrases in the passage as {english, chinese, \
+usage} — english = the exact word/phrase to use; chinese = its gloss; usage = where/how it's used \
+(its collocation, register, or which slot in the sentence). Include content words AND useful \
+connectors, so the learner can pick the right word instead of retrieving it cold.
+3. grammar: 1-4 short notes on the key tense/structure points to get right.
+4. note: one line on the main word-order difference this passage highlights.
+American English."""
 
 
 def make_scaffold(passage: str) -> dict[str, Any]:

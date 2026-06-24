@@ -237,6 +237,22 @@
   .reading-seg .component{margin:0 0 8px; font:400 14px/1.55 var(--sans); color:var(--frost-300);}
   .reading-seg .comment{border-left:2px solid var(--accent); padding-left:10px; color:var(--frost-400); font:400 13px/1.5 var(--sans);}
   .reading-palette{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+  .reading-block{border:1px solid var(--edge); border-radius:7px; padding:16px; margin:12px 0; background:var(--glass-well);
+    cursor:pointer; transition:border-color var(--dur) var(--ease), background var(--dur) var(--ease);}
+  .reading-block:hover{border-color:var(--edge-2); background:rgba(255,255,255,.045);}
+  .reading-block.active{border-color:var(--ice); background:var(--glow);}
+  .reading-block .block-top{display:flex; justify-content:space-between; gap:12px; align-items:baseline; margin-bottom:10px;}
+  .reading-block .block-title{font:600 18px/1.35 var(--sans); color:var(--frost-100);}
+  .reading-block .range{font:500 12px var(--mono); color:var(--frost-600); flex:none;}
+  .reading-block .block-en{font:500 20px/1.62 var(--serif); color:var(--frost-100); margin:8px 0 12px;}
+  .reading-block .block-core{font:500 15px/1.55 var(--sans); color:var(--frost-200); margin:0 0 8px;}
+  .reading-block .why-good{border-left:2px solid var(--accent); padding-left:10px; color:var(--frost-300); font:400 14px/1.55 var(--sans); margin:10px 0;}
+  .reading-watch{display:grid; gap:5px; margin:10px 0 0; padding:0; list-style:none;}
+  .reading-watch li{font:400 13px/1.45 var(--sans); color:var(--frost-500);}
+  .reading-lines{display:grid; gap:6px; margin-top:12px; padding-top:10px; border-top:1px solid var(--edge);}
+  .reading-line{font:400 13px/1.5 var(--serif); color:var(--frost-500);}
+  .reading-vocab{border:1px solid var(--edge); background:rgba(255,255,255,.06); color:var(--frost-200); cursor:pointer;}
+  .reading-vocab:hover{border-color:var(--ice); color:var(--frost-100);}
   .reading-audio-list{display:grid; gap:8px; margin-top:10px;}
   .reading-audio-list audio{margin-top:0;}
   .reading-stage{display:grid; grid-template-columns:minmax(0,1fr); gap:12px;}
@@ -412,7 +428,7 @@
             <div class="reading-head">
               <div class="reading-title">
                 <b>Reading Lab · 预烤阅读包</b>
-                <span>English source stays visible; scaffold and comments stay sentence-bound.</span>
+                <span>Audio follows meaning blocks; sentence detail stays inside each block.</span>
               </div>
               <button class="btn secondary" id="readingReloadBtn" onclick="loadReadingPackages()">Reload</button>
             </div>
@@ -437,9 +453,9 @@
           <div id="readingFollow" class="reading-follow" style="display:none"></div>
           <div id="readingPackageOut"></div>
           <div id="readingAskBox" class="card" style="display:none">
-            <h2>Ask selected sentence / 问选中的句子</h2>
+            <h2>Ask selected block / 问当前阅读块</h2>
             <div id="readingAskContext" class="muted" style="font-size:13px;margin-bottom:10px"></div>
-            <textarea id="readingQuestion" rows="2" placeholder="这句话在上下文里到底在说什么？为什么这个词有力量？"></textarea>
+            <textarea id="readingQuestion" rows="2" placeholder="选中一个词，或问：这一块在上下文里到底在说什么？为什么这个词有力量？"></textarea>
             <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <button class="btn secondary" id="readingAskBtn" onclick="askReadingSegment()">Ask</button>
               <button class="btn secondary" id="readingSpeakBtn" onclick="speakReadingSelection()">Speak comment</button>
@@ -557,7 +573,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 let currentThought = "", currentDrill = null, currentSegs = [], vocabSupportMode = "scaffold";
-let readingPackages = [], activeReadingPackage = null, activeReadingSegment = 0, readingKind = "book";
+let readingPackages = [], activeReadingPackage = null, activeReadingSegment = 0, activeReadingBlock = 0, readingKind = "book";
 let lastReadingAnswerSpeak = "";
 
 function esc(t){return String(t ?? "").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -856,61 +872,120 @@ function renderReadingPackage(){
     }
   }
   $("readingPackageOut").innerHTML=`<div class="card reading-stage">
-    <h2>Lyric scroll / 当前句滚动</h2>
-    <div class="reading-lyrics" id="readingLyrics">${(pkg.segments||[]).map((s,i)=>renderReadingSegment(s,i)).join("")}</div>
+    <h2>Block scroll / 当前块滚动</h2>
+    <div class="reading-lyrics" id="readingLyrics" onmouseup="captureReadingSelection()">${readingBlocks().map((b,i)=>renderReadingBlock(b,i)).join("")}</div>
   </div>`;
   $("readingAskBox").style.display="block";
   const lyrics=$("readingLyrics");
   if(lyrics) lyrics.scrollTop=0;
   if(audio && audio.src) audio.currentTime=0;
-  selectReadingSegment(0);
-  setTimeout(()=>selectReadingSegment(0), 0);
+  selectReadingBlock(0);
+  setTimeout(()=>selectReadingBlock(0), 0);
 }
-function renderReadingSegment(s,i){
-  const palette=(s.palette||[]).map(p=>`<span class="pill" title="${esc(p.usage||"")}">${esc(p.english)} · ${esc(p.chinese)}</span>`).join("");
-  return `<div class="reading-seg" id="readingSeg${i}" onclick="selectReadingSegment(${i})">
-    <div class="idx">Sentence ${i+1}</div>
-    <p class="en">${esc(s.text_en||"")}</p>
-    ${s.component_zh?`<p class="component">${esc(s.component_zh)}</p>`:""}
-    ${s.codex_comment?`<div class="comment">${esc(s.codex_comment)}</div>`:""}
-    ${palette?`<div class="reading-palette">${palette}</div>`:""}
+function readingBlocks(){
+  const pkg=activeReadingPackage || {};
+  if(Array.isArray(pkg.blocks) && pkg.blocks.length) return pkg.blocks;
+  const segs=pkg.segments || [];
+  const blocks=[];
+  for(let start=0; start<segs.length; start+=4){
+    const end=Math.min(segs.length-1, start+3);
+    const group=segs.slice(start,end+1);
+    blocks.push({
+      index:blocks.length,
+      title:`Block ${blocks.length+1}`,
+      start_segment:start,
+      end_segment:end,
+      start_ms:group[0]?.start_ms,
+      end_ms:group[group.length-1]?.end_ms,
+      text_en:group.map(s=>s.text_en||"").join(" "),
+      core_zh:"这一块还没有精烤中文讲解；先用英文原文和选词提问读过去。",
+      why_good_zh:"",
+      watch_zh:[],
+      vocab:[]
+    });
+  }
+  return blocks;
+}
+function blockSegments(block){
+  const segs=(activeReadingPackage?.segments)||[];
+  const start=Number.isFinite(+block.start_segment)?+block.start_segment:0;
+  const end=Number.isFinite(+block.end_segment)?+block.end_segment:start;
+  return segs.slice(Math.max(0,start), Math.min(segs.length-1,end)+1);
+}
+function renderReadingBlock(b,i){
+  const segs=blockSegments(b);
+  const lines=segs.map(s=>`<div class="reading-line">S${(s.index??0)+1}. ${esc(s.text_en||"")}</div>`).join("");
+  const vocab=(b.vocab||[]).map(v=>{
+    const word=String(v.english||"");
+    const q=`Explain "${word}" in this block. What does it mean here, what Chinese meaning should I attach to it, and why does it work in Emerson's sentence?`;
+    return `<button class="pill reading-vocab" title="${esc(v.usage||"")}" data-question="${esc(q)}" onclick="askReadingWord(event, ${i}, this.dataset.question)">${esc(word)} · ${esc(v.chinese||"")}</button>`;
+  }).join("");
+  const watch=(b.watch_zh||[]).map(x=>`<li>${esc(x)}</li>`).join("");
+  return `<div class="reading-block" id="readingBlock${i}" onclick="selectReadingBlock(${i})">
+    <div class="block-top">
+      <div class="block-title">${esc(b.title||`Block ${i+1}`)}</div>
+      <div class="range">S${(+b.start_segment||0)+1}-${(+b.end_segment||+b.start_segment||0)+1}</div>
+    </div>
+    <div class="block-en">${esc(b.text_en || segs.map(s=>s.text_en||"").join(" "))}</div>
+    ${b.core_zh?`<p class="block-core">${esc(b.core_zh)}</p>`:""}
+    ${b.why_good_zh?`<div class="why-good">${esc(b.why_good_zh)}</div>`:""}
+    ${watch?`<ul class="reading-watch">${watch}</ul>`:""}
+    ${vocab?`<div class="reading-palette">${vocab}</div>`:""}
+    ${lines?`<div class="reading-lines">${lines}</div>`:""}
   </div>`;
 }
-function selectReadingSegment(i, fromAudio=false){
+function selectReadingBlock(i, fromAudio=false){
   const pkg=activeReadingPackage;
   if(!pkg) return;
-  const segs=pkg.segments||[];
-  if(!segs.length) return;
-  activeReadingSegment=Math.max(0, Math.min(i, segs.length-1));
-  document.querySelectorAll(".reading-seg").forEach((el,k)=>el.classList.toggle("active", k===activeReadingSegment));
-  const s=segs[activeReadingSegment];
-  const activeEl=$("readingSeg"+activeReadingSegment);
-  if(activeEl) activeEl.scrollIntoView({block:"center", behavior:fromAudio?"auto":"smooth"});
-  const audio=$("readingAudio");
-  if(!fromAudio && audio && audio.src && s.start_ms!==undefined){
-    audio.currentTime=(Number(s.start_ms)||0)/1000;
+  const blocks=readingBlocks();
+  if(!blocks.length) return;
+  activeReadingBlock=Math.max(0, Math.min(i, blocks.length-1));
+  const block=blocks[activeReadingBlock];
+  activeReadingSegment=Number.isFinite(+block.start_segment)?+block.start_segment:0;
+  document.querySelectorAll(".reading-block").forEach((el,k)=>el.classList.toggle("active", k===activeReadingBlock));
+  const activeEl=$("readingBlock"+activeReadingBlock);
+  const lyrics=$("readingLyrics");
+  if(activeEl && lyrics){
+    const target=activeEl.offsetTop - lyrics.clientHeight * 0.20;
+    lyrics.scrollTo({top:Math.max(0,target), behavior:fromAudio?"auto":"smooth"});
   }
-  $("readingFollow").innerHTML=`<div class="label">Selected source follows / 选句跟随</div>
-    <div class="en">${esc(s.text_en||"")}</div>
-    ${s.component_zh?`<div class="zh">${esc(s.component_zh)}</div>`:""}`;
+  const audio=$("readingAudio");
+  if(!fromAudio && audio && audio.src && block.start_ms!==undefined){
+    audio.currentTime=(Number(block.start_ms)||0)/1000;
+  }
+  $("readingFollow").innerHTML=`<div class="label">Selected block follows / 当前块跟随 · ${esc(block.title||`Block ${activeReadingBlock+1}`)}</div>
+    <div class="en">${esc(block.text_en || "")}</div>
+    <div class="zh">${esc(block.core_zh || "")}</div>
+    ${block.why_good_zh?`<div class="zh">${esc(block.why_good_zh)}</div>`:""}`;
   $("readingFollow").style.display="block";
-  $("readingAskContext").textContent=`${pkg.title} · sentence ${activeReadingSegment+1}`;
+  $("readingAskContext").textContent=`${pkg.title} · block ${activeReadingBlock+1} · sentences ${(Number(block.start_segment)||0)+1}-${(Number(block.end_segment)||Number(block.start_segment)||0)+1}`;
 }
 function syncReadingAudioTime(){
   const pkg=activeReadingPackage, audio=$("readingAudio");
   if(!pkg || !audio || !audio.src) return;
   const t=audio.currentTime*1000;
-  const segs=pkg.segments||[];
-  const k=segs.findIndex(s=>t>=(Number(s.start_ms)||0) && t<(Number(s.end_ms)||0));
-  if(k>=0 && k!==activeReadingSegment) selectReadingSegment(k, true);
+  const blocks=readingBlocks();
+  const k=blocks.findIndex(b=>t>=(Number(b.start_ms)||0) && t<(Number(b.end_ms)||0));
+  if(k>=0 && k!==activeReadingBlock) selectReadingBlock(k, true);
+}
+function askReadingWord(ev, blockIndex, question){
+  ev?.stopPropagation?.();
+  selectReadingBlock(blockIndex);
+  $("readingQuestion").value=question;
+  askReadingSegment();
+}
+function captureReadingSelection(){
+  const text=String(window.getSelection?.().toString()||"").trim().replace(/\s+/g," ");
+  if(!text || text.length<2 || text.length>120) return;
+  $("readingQuestion").value=`Explain "${text}" in this block. What does it mean here, which Chinese sense should I keep, and why does this wording matter?`;
 }
 function selectedReadingSpeakText(){
   const pkg=activeReadingPackage;
-  const s=(pkg?.segments||[])[activeReadingSegment] || {};
+  const b=readingBlocks()[activeReadingBlock] || {};
   return [
-    s.text_en || "",
-    s.component_zh ? "中文语序提示：" + s.component_zh : "",
-    s.codex_comment ? "Codex comment: " + s.codex_comment : "",
+    b.text_en || "",
+    b.core_zh ? "Core note: " + b.core_zh : "",
+    b.why_good_zh ? "Why it works: " + b.why_good_zh : "",
   ].filter(Boolean).join(" ");
 }
 async function speakText(text, slug, targetId){
@@ -928,12 +1003,12 @@ async function speakText(text, slug, targetId){
 async function speakReadingSelection(){
   const pkg=activeReadingPackage;
   if(!pkg) return;
-  await speakText(selectedReadingSpeakText(), `${pkg.id}-sentence-${activeReadingSegment+1}`, "readingAudioList");
+  await speakText(selectedReadingSpeakText(), `${pkg.id}-block-${activeReadingBlock+1}`, "readingAudioList");
 }
 async function speakReadingAskAnswer(){
   const pkg=activeReadingPackage;
   if(!pkg || !lastReadingAnswerSpeak) return;
-  await speakText(lastReadingAnswerSpeak, `${pkg.id}-ask-${activeReadingSegment+1}`, "readingAudioList");
+  await speakText(lastReadingAnswerSpeak, `${pkg.id}-ask-block-${activeReadingBlock+1}`, "readingAudioList");
 }
 async function askReadingSegment(){
   const pkg=activeReadingPackage;
@@ -945,6 +1020,7 @@ async function askReadingSegment(){
   try{
     const d=await api("/api/reading/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       package_id:pkg.id,
+      block_index:activeReadingBlock,
       segment_index:activeReadingSegment,
       question:q
     })});

@@ -47,6 +47,12 @@ def with_available_audio(package: dict[str, Any]) -> dict[str, Any]:
     return p
 
 
+def with_reading_blocks(package: dict[str, Any]) -> dict[str, Any]:
+    p = dict(package)
+    p["blocks"] = normalize_blocks(p)
+    return p
+
+
 def package_paths() -> list[Path]:
     paths = sorted(reading_package_dir().glob("*.jsonl"))
     paths.extend(sorted(local_package_dir().glob("*.jsonl")))
@@ -97,6 +103,7 @@ def list_packages() -> list[dict[str, Any]]:
                 or audio_exists(p.get("audio_file"))
             ),
             "segment_count": len(p.get("segments", []) or []),
+            "block_count": len(normalize_blocks(p)),
             "why_selected": p.get("why_selected", ""),
             "comment_zh": p.get("codex_comment_zh", ""),
         }
@@ -107,8 +114,105 @@ def list_packages() -> list[dict[str, Any]]:
 def get_package(pid: str) -> dict[str, Any] | None:
     for package in load_packages():
         if package.get("id") == pid:
-            return with_available_audio(package)
+            return with_reading_blocks(with_available_audio(package))
     return None
+
+
+def normalize_blocks(package: dict[str, Any]) -> list[dict[str, Any]]:
+    segments = list(package.get("segments", []) or [])
+    raw_blocks = list(package.get("blocks", []) or [])
+    if raw_blocks:
+        return _merge_blocks_with_fallback(raw_blocks, segments)
+    return _fallback_blocks(segments)
+
+
+def _merge_blocks_with_fallback(raw_blocks: list[dict[str, Any]], segments: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not segments:
+        return [_normalize_block(b, segments, i) for i, b in enumerate(raw_blocks)]
+    raw = sorted(
+        (_normalize_block(b, segments, i) for i, b in enumerate(raw_blocks)),
+        key=lambda b: (int(b.get("start_segment", 0)), int(b.get("end_segment", 0))),
+    )
+    merged: list[dict[str, Any]] = []
+    cursor = 0
+    for block in raw:
+        start = int(block.get("start_segment", 0))
+        end = int(block.get("end_segment", start))
+        if start > cursor:
+            merged.extend(_fallback_blocks_for_range(segments, cursor, start - 1, len(merged)))
+        if end >= cursor:
+            block["index"] = len(merged)
+            merged.append(block)
+            cursor = end + 1
+    if cursor < len(segments):
+        merged.extend(_fallback_blocks_for_range(segments, cursor, len(segments) - 1, len(merged)))
+    return merged
+
+
+def _normalize_block(block: dict[str, Any], segments: list[dict[str, Any]], i: int) -> dict[str, Any]:
+    b = dict(block)
+    start = _coerce_int(b.get("start_segment"), i)
+    end = _coerce_int(b.get("end_segment"), start)
+    if segments:
+        start = max(0, min(start, len(segments) - 1))
+        end = max(start, min(end, len(segments) - 1))
+    segs = segments[start : end + 1]
+    b["index"] = _coerce_int(b.get("index"), i)
+    b["start_segment"] = start
+    b["end_segment"] = end
+    if not b.get("text_en"):
+        b["text_en"] = " ".join(str(s.get("text_en", "")).strip() for s in segs if s.get("text_en"))
+    if segs and "start_ms" not in b and segs[0].get("start_ms") is not None:
+        b["start_ms"] = segs[0].get("start_ms")
+    if segs and "end_ms" not in b and segs[-1].get("end_ms") is not None:
+        b["end_ms"] = segs[-1].get("end_ms")
+    b.setdefault("title", f"Block {i + 1}")
+    b.setdefault("core_zh", "")
+    b.setdefault("why_good_zh", "")
+    b.setdefault("watch_zh", [])
+    b.setdefault("vocab", [])
+    return b
+
+
+def _fallback_blocks(segments: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return _fallback_blocks_for_range(segments, 0, len(segments) - 1, 0)
+
+
+def _fallback_blocks_for_range(
+    segments: list[dict[str, Any]], start_index: int, end_index: int, index_offset: int
+) -> list[dict[str, Any]]:
+    blocks: list[dict[str, Any]] = []
+    start = start_index
+    chars = 0
+    for i in range(start_index, end_index + 1):
+        seg = segments[i]
+        chars += len(str(seg.get("text_en", "")))
+        sentence_count = i - start + 1
+        at_end = i == end_index
+        if at_end or sentence_count >= 4 or chars >= 720:
+            blocks.append(
+                _normalize_block(
+                    {
+                        "index": index_offset + len(blocks),
+                        "start_segment": start,
+                        "end_segment": i,
+                        "title": f"Block {index_offset + len(blocks) + 1}",
+                        "core_zh": "这一块还没有精烤中文讲解；先用英文原文和选词提问读过去。",
+                    },
+                    segments,
+                    index_offset + len(blocks),
+                )
+            )
+            start = i + 1
+            chars = 0
+    return blocks
+
+
+def _coerce_int(value: Any, fallback: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return fallback
 
 
 def split_sentences(text: str) -> list[str]:

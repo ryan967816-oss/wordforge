@@ -402,18 +402,39 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 pid = str(req.get("package_id", ""))
                 question = str(req.get("question", "")).strip()
                 segment_index = int(req.get("segment_index", 0))
+                block_index = req.get("block_index")
                 if not question:
                     raise ValueError("empty question")
                 package = reading_packages.get_package(pid)
                 if package is None:
                     raise ValueError(f"reading package not found: {pid}")
                 segments = package.get("segments", []) or []
+                blocks = package.get("blocks", []) or []
                 segment = segments[segment_index] if 0 <= segment_index < len(segments) else {}
+                block: dict[str, Any] = {}
+                try:
+                    bi = int(block_index)
+                except (TypeError, ValueError):
+                    bi = -1
+                if 0 <= bi < len(blocks):
+                    block = blocks[bi]
                 passage = {
-                    "title": package.get("title", ""),
+                    "title": (
+                        f"{package.get('title', '')} · {block.get('title', '')}"
+                        if block
+                        else package.get("title", "")
+                    ),
                     "source": package.get("source", ""),
-                    "why_selected": package.get("why_selected", ""),
-                    "text_en": segment.get("text_en") or package.get("text_en", ""),
+                    "why_selected": "\n".join(
+                        str(x)
+                        for x in [
+                            package.get("why_selected", ""),
+                            block.get("core_zh", ""),
+                            block.get("why_good_zh", ""),
+                        ]
+                        if x
+                    ),
+                    "text_en": block.get("text_en") or segment.get("text_en") or package.get("text_en", ""),
                 }
                 route = corpus.get_route(str(package.get("route", "")))
                 _json_response(self, translate.ask_about_passage(passage, question, route))

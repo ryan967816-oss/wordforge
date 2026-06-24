@@ -1,5 +1,71 @@
 # WordForge Worklog
 
+## 2026-06-24 - Block-Level Emerson Reader
+
+Operator: Codex.
+
+Context:
+- Ming could follow the audio but not the meaning fast enough. Sentence-level
+  lyric scrolling was too fragmented; the English source disappeared from view
+  while reading deeper in the page.
+- Ming wanted pre-baked teaching: block-by-block explanation, high-density
+  vocabulary hints, and quick questions on selected words.
+
+Current state:
+- Reader packages now normalize a top-level `blocks` layer while preserving the
+  underlying sentence `segments` needed for audio timing.
+- `Self-Reliance · Complete Essay` now has 101 reading blocks:
+  - 11 hand-baked high-scaffold blocks from the opening through `foolish
+    consistency`.
+  - fallback blocks for the rest of the essay, so the whole text remains
+    readable before every later block is hand-curated.
+- Reader UI now syncs audio to the active block, keeps the current block's
+  English source in the sticky follow bar, renders Chinese core notes, why-good
+  notes, watch points, and vocab chips, and lets vocab chips pre-fill/send a
+  block-anchored question.
+- The complete local Emerson mp3 remains
+  `data/reading_audio/emerson-self-reliance-complete.mp3`, with
+  `chunk-duration-proportional` timing.
+
+Files changed:
+- `wordforge/reading_packages.py` - block normalization and fallback blocks.
+- `wordforge/studio_page.html` - block-level Reader UI and selected-word
+  questions.
+- `wordforge/studio.py` - `/api/reading/ask` can answer from a selected block.
+- `scripts/bake_self_reliance_full.py` - source of truth for the first curated
+  Emerson reading blocks.
+- `data/reading_packages/emerson_self_reliance_full.jsonl` - regenerated
+  package with blocks plus existing audio metadata.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile wordforge/reading_packages.py wordforge/studio.py scripts/bake_self_reliance_full.py scripts/bake_reading_audio.py
+# pass
+
+node - <<'NODE'
+# parsed Studio embedded JS with new Function(...)
+# js parse ok
+NODE
+
+curl 'http://127.0.0.1:8764/api/reading/package/get?id=emerson-self-reliance-complete'
+# audio_timing=chunk-duration-proportional, segments=489, blocks=101
+```
+
+Browser QA:
+- Opened `http://127.0.0.1:8764/?view=reader&package=emerson-self-reliance-complete&native=1`.
+- Confirmed Reader visible, package selected, audio source present, 101
+  `.reading-block` nodes, first block title `自己的思想就是天才的入口`,
+  first block has 8 vocab chips, sticky follow contains the English source, and
+  browser console had no errors.
+
+Boundaries:
+- This is not true word-level forced alignment. Audio chooses the active block
+  from sentence timings that are still chunk-duration proportional.
+- Only the opening through `foolish consistency` is hand-curated at high
+  density. Later blocks are readable fallback blocks until they are baked.
+- Local learner history in `data/lexicon.jsonl` and `data/reviews.jsonl` was
+  left uncommitted.
+
 ## 2026-06-24 - Full Self-Reliance Reader Package
 
 Operator: Codex.

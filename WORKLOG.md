@@ -1,5 +1,55 @@
 # WordForge Worklog
 
+## 2026-06-24 - Correct Back-Translation Source
+
+Operator: Codex.
+
+Context:
+- Ming noticed that C->E back-translation still followed the English original.
+  That leaks the answer and violates the intended loop: the learner should see a
+  Chinese-in-English-order source, then reconstruct English.
+
+Current state:
+- In `回译 C→E · 产出`, the sticky follow bar now shows
+  `Chinese source follows / 中文语序稿跟随`.
+- The per-sentence answer boxes now show `Chinese source 1/2/3...` and display
+  the Chinese word-order scaffold, not the English original.
+- The original English is still retained internally for grading and line checks,
+  so feedback compares the learner's English against the correct original.
+- For selected corpus passages in C->E mode, the top English source box is hidden
+  once the Chinese source is available.
+
+Files changed:
+- `.gitignore` - keeps local translation attempt/error logs out of framework
+  commits.
+- `wordforge/studio_page.html` - separates practice source text from grading
+  source text in Translate back-translation mode.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile wordforge/studio.py wordforge/translate.py
+# pass
+
+node - <<'NODE'
+# parsed the embedded Studio script with new Function(...)
+# js parse ok
+NODE
+
+curl http://127.0.0.1:8764/api/translate/corpus
+# HTTP 200
+```
+
+Browser QA:
+- Chrome at `http://127.0.0.1:8764/`, Translate tab, `回译 C→E · 产出`,
+  Emerson route, corpus passage selected.
+- Confirmed the sticky source is Chinese word-order text.
+- Confirmed each line card is labeled `Chinese source N` and shows the Chinese
+  scaffold while `Check line` still works against the English original.
+
+Boundaries:
+- Browser QA generated local learner records under `data/translate_attempts.jsonl`
+  and `data/translate_errors.jsonl`; those are not part of the code commit.
+
 ## 2026-06-24 - Thick Scaffold Vocab Drill
 
 Operator: Codex.

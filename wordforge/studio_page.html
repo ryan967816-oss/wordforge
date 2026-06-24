@@ -745,14 +745,15 @@ async function previewApi(path, opts){
 }
 
 /* ---- Translate (中英桥): E→C intake + back-translation production ---- */
-let transMode="e2c", transSrc="", transPackage=null, corpusList=[], routesList=[], activeRoute="";
+let transMode="e2c", transSrc="", transPackage=null, transBackScaffold="", corpusList=[], routesList=[], activeRoute="";
 function setTransMode(m){
   transMode=m;
+  if(m==="e2c") transBackScaffold="";
   $("tmA").className = m==="e2c" ? "btn" : "btn secondary";
   $("tmB").className = m==="back" ? "btn" : "btn secondary";
   $("transHint").textContent = m==="e2c"
     ? "Source / 原文 · paste English → I gloss hard words → you translate to 中文"
-    : "Source / 原文 stays here · use the scaffold below to rebuild the English";
+    : "Build source / 生成中文语序稿 · paste English → I make the Chinese source → you rebuild English";
   $("transStartBtn").textContent = m==="e2c" ? "Prepare" : "Make scaffold";
   $("transPrep").innerHTML=""; $("transAnswerBox").style.display="none"; $("transGradeOut").innerHTML="";
   $("transSourceFollow").style.display="none";
@@ -767,8 +768,9 @@ function syncSupportLabels(){
   [...$("supportLevel").options].forEach((o, i)=>{ o.textContent = labels[i] || o.textContent; });
 }
 function syncTransSourceVisibility(){
-  $("transSrcWrap").style.display = "block";
-  $("transStartRow").style.display = "flex";
+  const hideEnglishOriginal = transMode==="back" && Boolean(transPackage || transBackScaffold);
+  $("transSrcWrap").style.display = hideEnglishOriginal ? "none" : "block";
+  $("transStartRow").style.display = hideEnglishOriginal ? "none" : "flex";
 }
 function passageRoute(p){ return String(p?.route || p?.module || ""); }
 function routeById(id){ return routesList.find(r=>r.id===id) || null; }
@@ -820,6 +822,7 @@ function renderRouteMeta(){
 }
 function clearSelectedPassage(){
   transPackage=null;
+  transBackScaffold="";
   $("corpusMeta").textContent="";
   $("transPrep").innerHTML="";
   $("transAnswerBox").style.display="none";
@@ -865,6 +868,7 @@ async function pickCorpusPassage(){
       $("corpusSelect").value=id;
     }
     transSrc = transPackage.text_en || "";
+    transBackScaffold = "";
     $("transSrc").value = transSrc;
     $("corpusMeta").textContent = `${transPackage.source} · ${transPackage.context_note || transPackage.why_selected || ""}`;
     $("transAskBox").style.display="block";
@@ -904,7 +908,7 @@ function renderCorpusSupport(){
     if(level==="1") html = `<div class="card"><h2>Thick scaffold — Chinese in English word order</h2>${wordHintLine}<p class="render">${esc(transPackage.scaffold||"")}</p>${grammarLine}${structureLine}<h2 style="margin-top:16px">Word palette — click to use it · 英-中-用在哪</h2><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${pal}</div></div>`;
     else if(level==="2") html = `<div class="card"><h2>Hints only</h2>${wordHintLine}${structureLine}${grammarLine}<h2 style="margin-top:14px">Hard words</h2>${hardWords}</div>`;
     else if(level==="3") html = `<div class="card"><h2>Chinese in English word order — no tags, no palette</h2><p class="render">${esc(plainScaffold)}</p></div>`;
-    else html = `<div class="card"><h2>Bare C→E</h2><p class="muted">No scaffold shown. Reconstruct from memory, then check against the original.</p></div>`;
+    else html = `<div class="card"><h2>Bare C→E</h2><p class="muted">No extra hints. Reconstruct English from the Chinese word-order source in the line boxes below.</p></div>`;
     $("transAnswerLabel").textContent="Your English reconstruction";
   }
   $("transPrep").innerHTML = html;
@@ -917,15 +921,34 @@ function renderCorpusSupport(){
 function stripScaffoldTags(s){
   return String(s||"").replace(/\[[^\]]+\]/g, "").replace(/\s+/g, " ").trim();
 }
+function splitUnits(s){
+  return String(s||"")
+    .replace(/([.!?。！？])\s*/g, "$1\n")
+    .split(/\n+/)
+    .map(x=>x.trim())
+    .filter(Boolean);
+}
+function backScaffoldSource(){
+  return transPackage?.scaffold || transBackScaffold || "";
+}
+function practiceSourceText(){
+  if(transMode==="back"){
+    const scaffold=backScaffoldSource();
+    if(!scaffold) return "";
+    return supportValue()==="1" ? scaffold : stripScaffoldTags(scaffold);
+  }
+  return transSrc;
+}
 function renderSourceFollow(){
   const box=$("transSourceFollow");
-  const text=String(transSrc||"").trim();
+  const text=String(practiceSourceText()||"").trim();
   if(!box || !text){ if(box) box.style.display="none"; return; }
-  box.innerHTML=`<div class="label">Source follows / 原文跟随</div><div class="text">${esc(text)}</div>`;
+  const label = transMode==="back" ? "Chinese source follows / 中文语序稿跟随" : "Source follows / 英文原文跟随";
+  box.innerHTML=`<div class="label">${esc(label)}</div><div class="text">${esc(text)}</div>`;
   box.style.display="block";
 }
 function splitSentences(s){
-  return String(s||"").split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean);
+  return splitUnits(s);
 }
 function phraseInSentence(phrase, sentence){
   const p=String(phrase||"").toLowerCase().replace(/[^\w\s'-]/g," ").replace(/\s+/g," ").trim();
@@ -955,12 +978,15 @@ function lineHints(sentence){
 function renderLineAnswers(){
   const box=$("transLineBox");
   if(!box) return;
-  const sentences=splitSentences(transSrc);
-  if(!sentences.length){ box.innerHTML=""; return; }
-  box.innerHTML=sentences.map((s,i)=>{
-    const chips=lineHints(s).map(h=>`<span class="pill ${h.warn?"warn":""}" title="${esc(h.title)}">${esc(h.text)}</span>`).join("");
+  const practiceUnits=splitUnits(practiceSourceText());
+  const originalUnits=splitSentences(transSrc);
+  if(!practiceUnits.length){ box.innerHTML=""; return; }
+  box.innerHTML=practiceUnits.map((s,i)=>{
+    const hintSentence = transMode==="back" ? (originalUnits[i] || "") : s;
+    const chips=lineHints(hintSentence).map(h=>`<span class="pill ${h.warn?"warn":""}" title="${esc(h.title)}">${esc(h.text)}</span>`).join("");
+    const lineLabel = transMode==="back" ? `Chinese source ${i+1}` : `Sentence ${i+1}`;
     return `<div class="line-answer" data-line="${i}">
-      <div class="top"><b>Sentence ${i+1}</b><button class="btn secondary" id="lineCheck${i}" onclick="checkTransLine(${i})">Check line</button></div>
+      <div class="top"><b>${esc(lineLabel)}</b><button class="btn secondary" id="lineCheck${i}" onclick="checkTransLine(${i})">Check line</button></div>
       <div class="line-source">${esc(s)}</div>
       ${chips?`<div class="slotline">${chips}</div>`:""}
       <textarea class="serif trans-line" data-index="${i}" rows="3" placeholder="${transMode==="e2c"?"中文翻译":"English reconstruction"}" oninput="syncWholeAnswer()"></textarea>
@@ -990,6 +1016,7 @@ async function transStart(){
       $("transAnswerLabel").textContent="Your Chinese translation";
     } else {
       const d=await api("/api/translate/scaffold",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({passage:transSrc})});
+      transBackScaffold=d.scaffold||"";
       const grammar=(d.grammar||[]).length?`<p class="muted" style="font-size:13px;margin-top:8px"><b>watch:</b> ${d.grammar.map(esc).join(" · ")}</p>`:"";
       const pal=(d.palette||[]).map(p=>`<span class="pill" style="cursor:pointer" title="${esc(p.usage)}" onclick='insertWord(${JSON.stringify(p.english)})'>${esc(p.english)} · ${esc(p.chinese)}</span>`).join(" ");
       $("transPrep").innerHTML=`<div class="card">
@@ -1002,7 +1029,7 @@ async function transStart(){
       </div>`;
       $("transAnswerLabel").textContent="Your English reconstruction (pick from the palette above)";
     }
-    $("transStatus").textContent=""; $("transAnswerBox").style.display="block"; renderSourceFollow(); renderLineAnswers();
+    $("transStatus").textContent=""; $("transAnswerBox").style.display="block"; syncTransSourceVisibility(); renderSourceFollow(); renderLineAnswers();
   }catch(e){$("transStatus").className="status err"; $("transStatus").textContent=e.message;}
   finally{setBusy("transStartBtn",false);}
 }
@@ -1092,8 +1119,9 @@ $("transSrc").addEventListener("input",()=>{
   if(transPackage && $("transSrc").value!==transPackage.text_en){
     transPackage=null; $("corpusSelect").value=""; $("corpusMeta").textContent="";
     $("transAskBox").style.display="none"; $("transAskOut").innerHTML="";
-    syncTransSourceVisibility();
   }
+  transBackScaffold="";
+  syncTransSourceVisibility();
   if($("transAnswerBox").style.display==="none") $("transSourceFollow").style.display="none";
 });
 </script>

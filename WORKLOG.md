@@ -1,5 +1,64 @@
 # WordForge Worklog
 
+## 2026-06-24 - Raw Sidebar and Ten Local Lessons
+
+Operator: Codex.
+
+Context:
+- Ming wanted the raw transcript tool out of the main Reader flow and asked for
+  ten California/Edge lesson packages to read tonight.
+- A read-only explorer checked the local listening library: the active shelf is
+  `/Users/yuhangxiao/Documents/english for listening `, with 432 mp3 files and
+  173 real selection recordings.
+
+Current state:
+- Reader now uses a two-column layout on desktop:
+  - main column: pre-baked reading packages, page reader, selected-block follow,
+    and ask box;
+  - right sidebar: `Raw listening transcript / 原始听写工具`, with its own audio,
+    transcript, and open-folder controls.
+- Native launch now opens Reader on the `Lessons / 课文` shelf by default.
+- Added `scripts/bake_local_lesson_batch.py` to batch-bake local selection
+  recordings into gitignored lesson packages.
+- Baked ten local lesson packages under `data/reading_packages/local/`:
+  - First Names
+  - Romeo and Juliet · balcony scene
+  - Growing Together
+  - My People
+  - Ways to Know You
+  - Who Is She?
+  - The Good Samaritan · Part 1
+  - The Good Samaritan · Part 2
+  - The Good Samaritan · Part 3
+  - The World Is in Their Hands
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile scripts/bake_local_lesson_batch.py wordforge/studio.py wordforge/reading_packages.py wordforge/window.py
+# pass
+
+node - <<'NODE'
+# parsed Studio embedded JS with new Function(...)
+# js parse ok
+NODE
+
+./.venv/bin/python scripts/bake_local_lesson_batch.py --count 10 --workers 3 --force
+# baked: 10, failed: 0
+
+./.venv/bin/python - <<'PY'
+# reading_packages.list_packages() reports 11 lesson packages:
+# existing Ambush plus 10 new local Edge lessons, all with audio.
+PY
+```
+
+Boundaries:
+- The new lesson JSONL files and transcript caches are local-only and
+  gitignored. The committed artifact is the repeatable baking script plus UI
+  shell.
+- These ten packages are starter scaffolds for immediate reading. They have
+  audio, page blocks, Chinese reading handles, structure/watch notes, and vocab
+  chips, but not yet hand-curated commentary on every sentence.
+
 ## 2026-06-24 - Reader Partition UX
 
 Operator: Codex.

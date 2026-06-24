@@ -108,7 +108,7 @@ def run() -> None:
     qs = urllib.parse.urlencode(
         {
             "view": "reader",
-            "package": "emerson-self-reliance-complete",
+            "kind": "lesson",
             "native": "1",
             "t": str(int(time.time())),
         }

@@ -215,7 +215,10 @@
   .seg.active .time{color:var(--ice);}
   .seg .txt{font:400 15px/1.6 var(--sans); color:var(--frost-400);}
   .seg.active .txt{color:var(--frost-100);}
-  .reader-grid{display:grid; grid-template-columns:1fr; gap:14px;}
+  .reader-grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,360px); gap:14px; align-items:start;}
+  .reader-main{display:grid; gap:14px; min-width:0;}
+  .reader-tools{position:sticky; top:0; align-self:start; max-height:calc(100vh - 46px); overflow:auto;}
+  .reader-tools .card{margin-top:0;}
   .reading-control-card{position:sticky; top:0; z-index:30; margin-top:0; background:rgba(13,17,23,.96);
     backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);}
   .reading-head{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
@@ -237,6 +240,8 @@
   .source-card .meta{font:400 12px/1.45 var(--sans); color:var(--frost-500);}
   .source-card .note{font:400 12px/1.45 var(--sans); color:var(--frost-400); margin-top:6px;}
   .reading-legacy summary{cursor:pointer; color:var(--frost-300); font:600 14px var(--sans);}
+  .reading-legacy .row{display:grid; grid-template-columns:minmax(0,1fr); gap:10px;}
+  .reading-legacy #transcript{max-height:42vh; overflow:auto; padding-right:4px;}
   .reading-follow{position:sticky; top:0; z-index:20; margin:10px 0 14px; padding:12px 14px;
     border:1px solid var(--edge-2); border-radius:7px; background:rgba(13,17,23,.90);
     backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur); box-shadow:0 8px 26px rgba(0,0,0,.24);}
@@ -284,6 +289,9 @@
   @media (max-width:840px){
     .reading-shelves{grid-template-columns:1fr;}
     .reading-toolbar{grid-template-columns:1fr;}
+    .reader-grid{grid-template-columns:1fr;}
+    .reader-tools{position:static; max-height:none;}
+    .reading-legacy #transcript{max-height:30vh;}
   }
 
   /* ---------- lists (stats / writing) ---------- */
@@ -446,61 +454,65 @@
         <section id="reader" class="view">
           <h1>Reader</h1>
           <div class="reader-grid">
-          <div class="card">
-            <div class="reading-head">
-              <div class="reading-title">
-                <b>Reading Lab · 预烤阅读包</b>
-                <span>Audio follows meaning blocks; sentence detail stays inside each block.</span>
+            <div class="reader-main">
+              <div class="card">
+                <div class="reading-head">
+                  <div class="reading-title">
+                    <b>Reading Lab · 预烤阅读包</b>
+                    <span>Audio follows meaning blocks; sentence detail stays inside each block.</span>
+                  </div>
+                  <button class="btn secondary" id="readingReloadBtn" onclick="loadReadingPackages()">Reload</button>
+                </div>
+                <div class="reading-shelves">
+                  <button class="shelf-tab" id="readingBookTab" onclick="setReadingKind('book')">
+                    <b>Books / 想读的书</b>
+                    <span id="readingBookCount">Long texts, block-scroll reading.</span>
+                  </button>
+                  <button class="shelf-tab" id="readingLessonTab" onclick="setReadingKind('lesson')">
+                    <b>Lessons / 课文</b>
+                    <span id="readingLessonCount">Class texts, page-by-page reading.</span>
+                  </button>
+                </div>
+                <div class="reading-library" id="readingPackageCards"></div>
+                <select id="readingKindSelect" onchange="setReadingKind(this.value)" style="display:none">
+                  <option value="book">Books / 想读的书</option>
+                  <option value="lesson">Lessons / 课文</option>
+                </select>
+                <select id="readingPackageSelect" onchange="loadReadingPackage()" style="display:none"></select>
+                <button class="btn" id="readingLoadBtn" onclick="loadReadingPackage()" style="display:none">Load</button>
+                <audio id="readingAudio" class="reading-audio" controls preload="none"></audio>
+                <div id="readingStatus" class="status"></div>
               </div>
-              <button class="btn secondary" id="readingReloadBtn" onclick="loadReadingPackages()">Reload</button>
-            </div>
-            <div class="reading-shelves">
-              <button class="shelf-tab" id="readingBookTab" onclick="setReadingKind('book')">
-                <b>Books / 想读的书</b>
-                <span id="readingBookCount">Long texts, block-scroll reading.</span>
-              </button>
-              <button class="shelf-tab" id="readingLessonTab" onclick="setReadingKind('lesson')">
-                <b>Lessons / 课文</b>
-                <span id="readingLessonCount">Class texts, page-by-page reading.</span>
-              </button>
-            </div>
-            <div class="reading-library" id="readingPackageCards"></div>
-            <select id="readingKindSelect" onchange="setReadingKind(this.value)" style="display:none">
-              <option value="book">Books / 想读的书</option>
-              <option value="lesson">Lessons / 课文</option>
-            </select>
-            <select id="readingPackageSelect" onchange="loadReadingPackage()" style="display:none"></select>
-            <button class="btn" id="readingLoadBtn" onclick="loadReadingPackage()" style="display:none">Load</button>
-            <audio id="readingAudio" class="reading-audio" controls preload="none"></audio>
-            <div id="readingStatus" class="status"></div>
-          </div>
-          <div id="readingPackageMeta"></div>
-          <div id="readingFollow" class="reading-follow" style="display:none"></div>
-          <div id="readingPackageOut"></div>
-          <div id="readingAskBox" class="card" style="display:none">
-            <h2>Ask selected block / 问当前阅读块</h2>
-            <div id="readingAskContext" class="muted" style="font-size:13px;margin-bottom:10px"></div>
-            <textarea id="readingQuestion" rows="2" placeholder="选中一个词，或问：这一块在上下文里到底在说什么？为什么这个词有力量？"></textarea>
-            <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <button class="btn secondary" id="readingAskBtn" onclick="askReadingSegment()">Ask</button>
-              <button class="btn secondary" id="readingSpeakBtn" onclick="speakReadingSelection()">Speak comment</button>
-              <span class="muted" style="font-size:13px">TTS reads generated mp3 locally when Deepgram is configured.</span>
-            </div>
-            <div id="readingAskOut"></div>
-            <div id="readingAudioList" class="reading-audio-list"></div>
-          </div>
-          <details class="card reading-legacy">
-            <summary>Raw listening transcript / 原始听写工具</summary>
-            <div style="margin-top:12px">
-              <div class="row">
-                <select class="grow" id="audioFile"></select>
-                <button class="btn secondary" onclick="openPdfFolder()">Open folder</button>
+              <div id="readingPackageMeta"></div>
+              <div id="readingFollow" class="reading-follow" style="display:none"></div>
+              <div id="readingPackageOut"></div>
+              <div id="readingAskBox" class="card" style="display:none">
+                <h2>Ask selected block / 问当前阅读块</h2>
+                <div id="readingAskContext" class="muted" style="font-size:13px;margin-bottom:10px"></div>
+                <textarea id="readingQuestion" rows="2" placeholder="选中一个词，或问：这一块在上下文里到底在说什么？为什么这个词有力量？"></textarea>
+                <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <button class="btn secondary" id="readingAskBtn" onclick="askReadingSegment()">Ask</button>
+                  <button class="btn secondary" id="readingSpeakBtn" onclick="speakReadingSelection()">Speak comment</button>
+                  <span class="muted" style="font-size:13px">TTS reads generated mp3 locally when Deepgram is configured.</span>
+                </div>
+                <div id="readingAskOut"></div>
+                <div id="readingAudioList" class="reading-audio-list"></div>
               </div>
-              <audio id="audio" controls preload="none"></audio>
-              <div id="readerStatus" class="status"></div>
-              <div style="margin-top:14px"><h2>Transcript — click a line to seek</h2><div id="transcript"></div></div>
             </div>
-          </details>
+            <aside class="reader-tools">
+              <details class="card reading-legacy" open>
+                <summary>Raw listening transcript / 原始听写工具</summary>
+                <div style="margin-top:12px">
+                  <div class="row">
+                    <select class="grow" id="audioFile"></select>
+                    <button class="btn secondary" onclick="openPdfFolder()">Open folder</button>
+                  </div>
+                  <audio id="audio" controls preload="none"></audio>
+                  <div id="readerStatus" class="status"></div>
+                  <div style="margin-top:14px"><h2>Transcript — click a line to seek</h2><div id="transcript"></div></div>
+                </div>
+              </details>
+            </aside>
           </div>
         </section>
 
@@ -834,11 +846,16 @@ function readingCategory(p){
 function readingRequestedId(){
   return new URLSearchParams(location.search).get("package") || "";
 }
+function readingRequestedKind(){
+  const kind = new URLSearchParams(location.search).get("kind") || "";
+  return kind === "lesson" || kind === "book" ? kind : "";
+}
 function syncReadingKindFromRequested(){
   if(readingRequestedApplied) return;
   const requested=readingRequestedId();
   const found=readingPackages.find(p=>p.id===requested);
   if(found) readingKind=readingCategory(found);
+  else if(readingRequestedKind()) readingKind=readingRequestedKind();
   readingRequestedApplied=true;
   if($("readingKindSelect")) $("readingKindSelect").value=readingKind;
 }

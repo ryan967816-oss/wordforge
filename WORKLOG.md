@@ -1,5 +1,59 @@
 # WordForge Worklog
 
+## 2026-06-24 - Reader Partition UX
+
+Operator: Codex.
+
+Context:
+- Ming reported that the Reader was functionally richer but still not pleasant
+  to use. The Books/Lessons split was hidden inside dropdowns, lesson paging was
+  hard to discover, and the old raw transcript tools crowded the main reading
+  surface.
+
+Current state:
+- Reader entry now has explicit `Books / 想读的书` and `Lessons / 课文` shelf
+  cards with counts and different reading modes.
+- Package selection is now card-based. A user can click a book or lesson card
+  directly instead of choosing a shelf dropdown plus a package dropdown plus
+  Load.
+- URL deep links with `?package=...` now infer the correct shelf category before
+  rendering, so opening the full Emerson package switches to Books even if the
+  previous local preference was Lessons.
+- Raw listening transcript tools are collapsed under `Raw listening transcript /
+  原始听写工具`, leaving the main Reader focused on the pre-baked reading
+  experience.
+
+Files changed:
+- `wordforge/studio_page.html` - Reader shelf tabs, package cards, category
+  inference, and collapsed raw transcript section.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile wordforge/studio.py wordforge/reading_packages.py scripts/bake_current_lesson_package.py
+# pass
+
+node - <<'NODE'
+# parsed Studio embedded JS with new Function(...)
+# js parse ok
+NODE
+```
+
+Browser QA:
+- Opened Reader with local preference on Lessons: saw `Lessons / 课文` active,
+  one lesson card, one visible reading block, `Page 1 / 7`, and raw transcript
+  tools collapsed.
+- Clicked Books: saw `Books / 想读的书` active, five book cards, and block-scroll
+  reading.
+- Clicked back to Lessons: saw one lesson card and page reader again.
+- Opened `?package=emerson-self-reliance-complete`: UI auto-selected Books,
+  selected the complete Emerson card, and rendered 101 blocks.
+- Browser console had no warnings/errors in both checks.
+
+Boundaries:
+- This improves Reader information architecture and selection flow. It does not
+  change the current Emerson audio timing strategy or make true forced
+  alignment.
+
 ## 2026-06-24 - Lesson Paging Reader
 
 Operator: Codex.

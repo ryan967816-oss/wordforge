@@ -222,6 +222,21 @@
   .reading-title{display:flex; flex-direction:column; gap:3px;}
   .reading-title b{font:600 18px var(--sans); color:var(--frost-100);}
   .reading-title span{font:400 13px var(--sans); color:var(--frost-500);}
+  .reading-shelves{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;}
+  .shelf-tab{display:grid; gap:4px; text-align:left; border:1px solid var(--edge); border-radius:7px;
+    background:var(--glass-well); color:var(--frost-300); padding:12px 14px; cursor:pointer;}
+  .shelf-tab b{font:600 15px var(--sans); color:var(--frost-100);}
+  .shelf-tab span{font:400 12px/1.4 var(--sans); color:var(--frost-500);}
+  .shelf-tab.active{border-color:var(--ice); background:var(--glow);}
+  .reading-library{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; margin-top:12px;}
+  .source-card{border:1px solid var(--edge); border-radius:7px; background:rgba(255,255,255,.035);
+    color:var(--frost-300); text-align:left; padding:12px 14px; cursor:pointer;}
+  .source-card:hover{border-color:var(--edge-2); background:rgba(255,255,255,.055);}
+  .source-card.active{border-color:var(--accent); background:var(--accent-wash);}
+  .source-card .name{font:600 15px/1.35 var(--sans); color:var(--frost-100); margin-bottom:6px;}
+  .source-card .meta{font:400 12px/1.45 var(--sans); color:var(--frost-500);}
+  .source-card .note{font:400 12px/1.45 var(--sans); color:var(--frost-400); margin-top:6px;}
+  .reading-legacy summary{cursor:pointer; color:var(--frost-300); font:600 14px var(--sans);}
   .reading-follow{position:sticky; top:0; z-index:20; margin:10px 0 14px; padding:12px 14px;
     border:1px solid var(--edge-2); border-radius:7px; background:rgba(13,17,23,.90);
     backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur); box-shadow:0 8px 26px rgba(0,0,0,.24);}
@@ -267,6 +282,7 @@
   .reading-audio{display:none; margin-top:12px;}
   .reading-audio.show{display:block;}
   @media (max-width:840px){
+    .reading-shelves{grid-template-columns:1fr;}
     .reading-toolbar{grid-template-columns:1fr;}
   }
 
@@ -438,20 +454,23 @@
               </div>
               <button class="btn secondary" id="readingReloadBtn" onclick="loadReadingPackages()">Reload</button>
             </div>
-            <div class="reading-toolbar">
-              <label>
-                <div class="eyebrow" style="margin-bottom:8px">Shelf</div>
-                <select id="readingKindSelect" onchange="setReadingKind(this.value)">
-                  <option value="book">Books / 想读的书</option>
-                  <option value="lesson">Lessons / 课文</option>
-                </select>
-              </label>
-              <label>
-                <div class="eyebrow" style="margin-bottom:8px">Pick text</div>
-                <select id="readingPackageSelect" onchange="loadReadingPackage()"></select>
-              </label>
-              <button class="btn" id="readingLoadBtn" onclick="loadReadingPackage()">Load</button>
+            <div class="reading-shelves">
+              <button class="shelf-tab" id="readingBookTab" onclick="setReadingKind('book')">
+                <b>Books / 想读的书</b>
+                <span id="readingBookCount">Long texts, block-scroll reading.</span>
+              </button>
+              <button class="shelf-tab" id="readingLessonTab" onclick="setReadingKind('lesson')">
+                <b>Lessons / 课文</b>
+                <span id="readingLessonCount">Class texts, page-by-page reading.</span>
+              </button>
             </div>
+            <div class="reading-library" id="readingPackageCards"></div>
+            <select id="readingKindSelect" onchange="setReadingKind(this.value)" style="display:none">
+              <option value="book">Books / 想读的书</option>
+              <option value="lesson">Lessons / 课文</option>
+            </select>
+            <select id="readingPackageSelect" onchange="loadReadingPackage()" style="display:none"></select>
+            <button class="btn" id="readingLoadBtn" onclick="loadReadingPackage()" style="display:none">Load</button>
             <audio id="readingAudio" class="reading-audio" controls preload="none"></audio>
             <div id="readingStatus" class="status"></div>
           </div>
@@ -470,16 +489,18 @@
             <div id="readingAskOut"></div>
             <div id="readingAudioList" class="reading-audio-list"></div>
           </div>
-          <div class="card">
-            <h2>Listening transcript reader</h2>
-            <div class="row">
-              <select class="grow" id="audioFile"></select>
-              <button class="btn secondary" onclick="openPdfFolder()">Open folder</button>
+          <details class="card reading-legacy">
+            <summary>Raw listening transcript / 原始听写工具</summary>
+            <div style="margin-top:12px">
+              <div class="row">
+                <select class="grow" id="audioFile"></select>
+                <button class="btn secondary" onclick="openPdfFolder()">Open folder</button>
+              </div>
+              <audio id="audio" controls preload="none"></audio>
+              <div id="readerStatus" class="status"></div>
+              <div style="margin-top:14px"><h2>Transcript — click a line to seek</h2><div id="transcript"></div></div>
             </div>
-            <audio id="audio" controls preload="none"></audio>
-            <div id="readerStatus" class="status"></div>
-          </div>
-          <div class="card"><h2>Transcript — click a line to seek</h2><div id="transcript"></div></div>
+          </details>
           </div>
         </section>
 
@@ -580,6 +601,7 @@
 const $ = (id) => document.getElementById(id);
 let currentThought = "", currentDrill = null, currentSegs = [], vocabSupportMode = "scaffold";
 let readingPackages = [], activeReadingPackage = null, activeReadingSegment = 0, activeReadingBlock = 0, readingKind = "book";
+let readingRequestedApplied = false;
 let lastReadingAnswerSpeak = "";
 
 function esc(t){return String(t ?? "").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -794,6 +816,7 @@ async function loadReadingPackages(){
   setBusy("readingReloadBtn", true);
   try{
     readingPackages = await api("/api/reading/packages");
+    syncReadingKindFromRequested();
     renderReadingPackageOptions();
     $("readingStatus").className="status";
     $("readingStatus").textContent = readingPackages.length ? `${readingPackages.length} package(s) ready.` : "No baked packages yet.";
@@ -805,9 +828,24 @@ async function loadReadingPackages(){
     setBusy("readingReloadBtn", false);
   }
 }
+function readingCategory(p){
+  return (p?.category || "book") === "lesson" ? "lesson" : "book";
+}
+function readingRequestedId(){
+  return new URLSearchParams(location.search).get("package") || "";
+}
+function syncReadingKindFromRequested(){
+  if(readingRequestedApplied) return;
+  const requested=readingRequestedId();
+  const found=readingPackages.find(p=>p.id===requested);
+  if(found) readingKind=readingCategory(found);
+  readingRequestedApplied=true;
+  if($("readingKindSelect")) $("readingKindSelect").value=readingKind;
+}
 function setReadingKind(kind){
   readingKind = kind === "lesson" ? "lesson" : "book";
   try{ localStorage.setItem("wf-reading-kind", readingKind); }catch(e){}
+  if($("readingKindSelect")) $("readingKindSelect").value=readingKind;
   renderReadingPackageOptions();
   activeReadingPackage=null;
   $("readingPackageMeta").innerHTML="";
@@ -819,13 +857,54 @@ function setReadingKind(kind){
 function renderReadingPackageOptions(){
   const sel=$("readingPackageSelect");
   if(!sel) return;
-  const filtered=readingPackages.filter(p=>(p.category||"book")===readingKind);
+  const filtered=readingPackages.filter(p=>readingCategory(p)===readingKind);
   const empty=readingKind==="lesson" ? "No local lesson packages yet" : "No book packages yet";
   sel.innerHTML = filtered.length
     ? filtered.map(p=>`<option value="${esc(p.id)}">${esc(p.title)} — ${esc(p.segment_count)} lines${p.has_audio?" · audio":""}</option>`).join("")
     : `<option value="">${esc(empty)}</option>`;
-  const requested = new URLSearchParams(location.search).get("package");
-  if(requested && filtered.some(p=>p.id===requested)) sel.value = requested;
+  const requested = readingRequestedId();
+  const current = activeReadingPackage?.id || sel.value;
+  const preferred = [requested, current].find(id=>id && filtered.some(p=>p.id===id));
+  if(preferred) sel.value = preferred;
+  else if(filtered.length) sel.value = filtered[0].id;
+  renderReadingShelf();
+}
+function renderReadingShelf(){
+  const bookCount=readingPackages.filter(p=>readingCategory(p)==="book").length;
+  const lessonCount=readingPackages.filter(p=>readingCategory(p)==="lesson").length;
+  if($("readingBookTab")) $("readingBookTab").classList.toggle("active", readingKind==="book");
+  if($("readingLessonTab")) $("readingLessonTab").classList.toggle("active", readingKind==="lesson");
+  if($("readingBookCount")) $("readingBookCount").textContent=`${bookCount} text${bookCount===1?"":"s"} · block-scroll reading`;
+  if($("readingLessonCount")) $("readingLessonCount").textContent=`${lessonCount} text${lessonCount===1?"":"s"} · page-by-page reading`;
+  const cards=$("readingPackageCards");
+  if(!cards) return;
+  const filtered=readingPackages.filter(p=>readingCategory(p)===readingKind);
+  const selected=$("readingPackageSelect")?.value || activeReadingPackage?.id || "";
+  if(!filtered.length){
+    cards.innerHTML=`<div class="source-card"><div class="name">${readingKind==="lesson"?"No lesson packages yet":"No book packages yet"}</div><div class="meta">Use the bake scripts to add material.</div></div>`;
+    return;
+  }
+  cards.innerHTML=filtered.map(p=>{
+    const count = p.block_count ? `${p.block_count} ${readingCategory(p)==="lesson"?"pages":"blocks"}` : `${p.segment_count || 0} lines`;
+    const audio = p.has_audio ? "audio ready" : "text only";
+    const note = p.comment_zh || p.why_selected || "";
+    return `<button class="source-card ${p.id===selected?"active":""}" data-id="${esc(p.id)}" onclick="selectReadingPackage(this.dataset.id)">
+      <div class="name">${esc(p.title || p.id)}</div>
+      <div class="meta">${esc(count)} · ${esc(audio)} · ${esc(p.level || readingCategory(p))}</div>
+      ${note?`<div class="note">${esc(note)}</div>`:""}
+    </button>`;
+  }).join("");
+}
+function selectReadingPackage(id){
+  const pkg=readingPackages.find(p=>p.id===id);
+  if(pkg && readingCategory(pkg)!==readingKind){
+    readingKind=readingCategory(pkg);
+    if($("readingKindSelect")) $("readingKindSelect").value=readingKind;
+    try{ localStorage.setItem("wf-reading-kind", readingKind); }catch(e){}
+    renderReadingPackageOptions();
+  }
+  if($("readingPackageSelect")) $("readingPackageSelect").value=id;
+  loadReadingPackage().catch(()=>{});
 }
 async function loadReadingPackage(){
   const id=$("readingPackageSelect")?.value;
@@ -838,6 +917,7 @@ async function loadReadingPackage(){
     activeReadingSegment = 0;
     activeReadingBlock = 0;
     renderReadingPackage();
+    renderReadingShelf();
     $("readingStatus").className="status";
     $("readingStatus").textContent="";
   }catch(e){

@@ -253,10 +253,16 @@
   .reading-line{font:400 13px/1.5 var(--serif); color:var(--frost-500);}
   .reading-vocab{border:1px solid var(--edge); background:rgba(255,255,255,.06); color:var(--frost-200); cursor:pointer;}
   .reading-vocab:hover{border-color:var(--ice); color:var(--frost-100);}
+  .reading-pagebar{display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap;
+    padding:10px 0 2px;}
+  .reading-pagebar .count{font:500 13px var(--mono); color:var(--frost-500);}
+  .reading-pagebar .nav{display:flex; gap:8px; align-items:center;}
+  .reading-pagebar button:disabled{opacity:.42; cursor:not-allowed;}
   .reading-audio-list{display:grid; gap:8px; margin-top:10px;}
   .reading-audio-list audio{margin-top:0;}
   .reading-stage{display:grid; grid-template-columns:minmax(0,1fr); gap:12px;}
   .reading-lyrics{max-height:52vh; overflow:auto; padding-right:4px; scroll-behavior:smooth;}
+  .reading-lyrics.paged{max-height:none; overflow:visible; padding-right:0;}
   .reading-toolbar{display:grid; grid-template-columns:170px minmax(0,1fr) auto; gap:10px; align-items:end; margin-top:12px;}
   .reading-audio{display:none; margin-top:12px;}
   .reading-audio.show{display:block;}
@@ -830,6 +836,7 @@ async function loadReadingPackage(){
   try{
     activeReadingPackage = await api("/api/reading/package/get?id="+encodeURIComponent(id));
     activeReadingSegment = 0;
+    activeReadingBlock = 0;
     renderReadingPackage();
     $("readingStatus").className="status";
     $("readingStatus").textContent="";
@@ -872,15 +879,18 @@ function renderReadingPackage(){
     }
   }
   $("readingPackageOut").innerHTML=`<div class="card reading-stage">
-    <h2>Block scroll / 当前块滚动</h2>
-    <div class="reading-lyrics" id="readingLyrics" onmouseup="captureReadingSelection()">${readingBlocks().map((b,i)=>renderReadingBlock(b,i)).join("")}</div>
+    <h2>${readingPaged() ? "Page reader / 切页阅读" : "Block scroll / 当前块滚动"}</h2>
+    <div class="reading-pagebar" id="readingPagebar"></div>
+    <div class="reading-lyrics" id="readingLyrics" onmouseup="captureReadingSelection()"></div>
   </div>`;
   $("readingAskBox").style.display="block";
-  const lyrics=$("readingLyrics");
-  if(lyrics) lyrics.scrollTop=0;
+  renderReadingCurrentPage();
   if(audio && audio.src) audio.currentTime=0;
   selectReadingBlock(0);
   setTimeout(()=>selectReadingBlock(0), 0);
+}
+function readingPaged(){
+  return ((activeReadingPackage?.category)||"book")==="lesson";
 }
 function readingBlocks(){
   const pkg=activeReadingPackage || {};
@@ -906,6 +916,40 @@ function readingBlocks(){
   }
   return blocks;
 }
+function renderReadingCurrentPage(){
+  const lyrics=$("readingLyrics");
+  if(!lyrics) return;
+  const blocks=readingBlocks();
+  const paged=readingPaged();
+  lyrics.classList.toggle("paged", paged);
+  if(paged){
+    const block=blocks[activeReadingBlock] || blocks[0];
+    lyrics.innerHTML = block ? renderReadingBlock(block, activeReadingBlock) : "";
+  }else{
+    lyrics.innerHTML = blocks.map((b,i)=>renderReadingBlock(b,i)).join("");
+    lyrics.scrollTop=0;
+  }
+  renderReadingPagebar();
+}
+function renderReadingPagebar(){
+  const bar=$("readingPagebar");
+  if(!bar) return;
+  const blocks=readingBlocks();
+  const paged=readingPaged();
+  if(!paged || !blocks.length){
+    bar.innerHTML = "";
+    return;
+  }
+  const b=blocks[activeReadingBlock] || blocks[0] || {};
+  bar.innerHTML = `<div class="count">Page ${activeReadingBlock+1} / ${blocks.length} · S${(Number(b.start_segment)||0)+1}-${(Number(b.end_segment)||Number(b.start_segment)||0)+1}</div>
+    <div class="nav">
+      <button class="btn secondary" onclick="turnReadingPage(-1)" ${activeReadingBlock<=0?"disabled":""}>Prev</button>
+      <button class="btn secondary" onclick="turnReadingPage(1)" ${activeReadingBlock>=blocks.length-1?"disabled":""}>Next</button>
+    </div>`;
+}
+function turnReadingPage(delta){
+  selectReadingBlock(activeReadingBlock + delta);
+}
 function blockSegments(block){
   const segs=(activeReadingPackage?.segments)||[];
   const start=Number.isFinite(+block.start_segment)?+block.start_segment:0;
@@ -921,7 +965,7 @@ function renderReadingBlock(b,i){
     return `<button class="pill reading-vocab" title="${esc(v.usage||"")}" data-question="${esc(q)}" onclick="askReadingWord(event, ${i}, this.dataset.question)">${esc(word)} · ${esc(v.chinese||"")}</button>`;
   }).join("");
   const watch=(b.watch_zh||[]).map(x=>`<li>${esc(x)}</li>`).join("");
-  return `<div class="reading-block" id="readingBlock${i}" onclick="selectReadingBlock(${i})">
+  return `<div class="reading-block" id="readingBlock${i}" data-block-index="${i}" onclick="selectReadingBlock(${i})">
     <div class="block-top">
       <div class="block-title">${esc(b.title||`Block ${i+1}`)}</div>
       <div class="range">S${(+b.start_segment||0)+1}-${(+b.end_segment||+b.start_segment||0)+1}</div>
@@ -942,7 +986,8 @@ function selectReadingBlock(i, fromAudio=false){
   activeReadingBlock=Math.max(0, Math.min(i, blocks.length-1));
   const block=blocks[activeReadingBlock];
   activeReadingSegment=Number.isFinite(+block.start_segment)?+block.start_segment:0;
-  document.querySelectorAll(".reading-block").forEach((el,k)=>el.classList.toggle("active", k===activeReadingBlock));
+  if(readingPaged()) renderReadingCurrentPage();
+  document.querySelectorAll(".reading-block").forEach(el=>el.classList.toggle("active", Number(el.dataset.blockIndex)===activeReadingBlock));
   const activeEl=$("readingBlock"+activeReadingBlock);
   const lyrics=$("readingLyrics");
   if(activeEl && lyrics){

@@ -1,5 +1,60 @@
 # WordForge Worklog
 
+## 2026-06-24 - Lesson Paging Reader
+
+Operator: Codex.
+
+Context:
+- Ming accepted the first Emerson block reader as a stopping point for now, but
+  pointed out that lesson packages had not changed and should not be displayed
+  as one crowded stack.
+- The desired lesson shape is page-like: one teaching block at a time, with
+  Prev/Next navigation, audio still attached, and local-only lesson data.
+
+Current state:
+- `scripts/bake_current_lesson_package.py` now bakes `lesson-ambush-local` with
+  7 high-scaffold blocks, including a dedicated `peril` block explaining why
+  `There was no real peril` matters after the grenade scene.
+- Reader UI now treats lesson packages as paged readers:
+  - one visible `.reading-block` at a time;
+  - `Page N / total` navigation;
+  - Prev/Next buttons;
+  - sticky follow text updates to the current page;
+  - audio remains the local lesson audio via `/api/listening/audio?i=0`.
+- Book packages still keep block-scroll behavior.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile scripts/bake_current_lesson_package.py wordforge/reading_packages.py wordforge/studio.py
+# pass
+
+node - <<'NODE'
+# parsed Studio embedded JS with new Function(...)
+# js parse ok
+NODE
+
+./.venv/bin/python scripts/bake_current_lesson_package.py --index 0 --id lesson-ambush-local --title 'Ambush · local lesson'
+# wrote local-only package with 98 segments
+
+curl 'http://127.0.0.1:8764/api/reading/package/get?id=lesson-ambush-local'
+# category=lesson, segments=98, blocks=7
+```
+
+Browser QA:
+- Opened Reader, switched Shelf to `Lessons / 课文`.
+- Confirmed selected package `lesson-ambush-local`, `lyricsPaged=true`,
+  exactly one `.reading-block` visible, `Page 1 / 7`, audio source
+  `/api/listening/audio?i=0`.
+- Clicked `Next`; confirmed `Page 2 / 7`, still one block visible, sticky
+  follow text updated, and browser console had no warnings/errors.
+
+Boundaries:
+- The updated local lesson package is under `data/reading_packages/local/` and
+  remains gitignored. The committed source of truth is the baking script plus UI
+  behavior.
+- This does not fix Emerson forced alignment. Ming explicitly paused that part
+  for now.
+
 ## 2026-06-24 - Block-Level Emerson Reader
 
 Operator: Codex.

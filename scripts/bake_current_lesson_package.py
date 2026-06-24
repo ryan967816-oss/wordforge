@@ -83,6 +83,141 @@ COMMENTS: dict[int, tuple[str, str]] = {
 }
 
 
+LESSON_BLOCKS: list[dict] = [
+    {
+        "title": "开场：女儿的问题把战争逼回家庭",
+        "start_segment": 0,
+        "end_segment": 15,
+        "core_zh": "这一页不是先讲战场，而是先讲女儿问父亲有没有杀过人；战争记忆被带进亲密关系里。",
+        "why_good_zh": "强处在 frame：孩子的问题很简单，成年人却无法简单回答，所以整篇课文的道德压力一下成立。",
+        "watch_zh": [
+            "asked if I had ever killed anyone 是间接问句，ever 把问题推向一生经验。",
+            "what happened / what I remember happening 的差别很重要：作者不是只交代事实，而是在承认记忆会变形。",
+        ],
+        "vocab": [
+            {"english": "war stories", "chinese": "战争故事；创伤记忆的叙述", "usage": "keep writing these war stories"},
+            {"english": "pretend", "chinese": "假设；暂且当作", "usage": "pretend she's a grown up"},
+            {"english": "exactly what happened", "chinese": "事情到底怎么发生", "usage": "tell her exactly what happened"},
+            {"english": "remember happening", "chinese": "记忆中发生的样子", "usage": "what I remember happening"},
+        ],
+    },
+    {
+        "title": "倒带：伏击场景被重新搭起来",
+        "start_segment": 16,
+        "end_segment": 31,
+        "core_zh": "作者先承认结果：我扔了手榴弹并杀了他；然后倒带到午夜、伏击点、雾、值班和等待。",
+        "why_good_zh": "强处在非线性叙事：先给你结果，再让你回到身体如何一步步进入那个结果。",
+        "watch_zh": [
+            "Or, to go back 是叙事倒带，不是普通补充。",
+            "switching off every two hours 是两人轮换值守；这种 routine 让后面的杀伤显得更日常、更可怕。",
+        ],
+        "vocab": [
+            {"english": "ambush", "chinese": "伏击", "usage": "ambush site"},
+            {"english": "platoon", "chinese": "排；小队", "usage": "the whole platoon"},
+            {"english": "dense brush", "chinese": "浓密灌木", "usage": "spread out in the dense brush"},
+            {"english": "grenade", "chinese": "手榴弹", "usage": "three grenades"},
+            {"english": "pins", "chinese": "保险销", "usage": "pins had already been straightened"},
+            {"english": "kneeled", "chinese": "跪着", "usage": "kneeled there and waited"},
+        ],
+    },
+    {
+        "title": "敌人先被写成一个人",
+        "start_segment": 32,
+        "end_segment": 45,
+        "core_zh": "清晨、雾、蚊子、一个年轻人出现；作者没有先把他写成 enemy，而是写他的衣服、姿态和放松。",
+        "why_good_zh": "强处在去标签化：对方不是抽象敌人，而是一个有身体姿态、走路节奏、甚至像从雾里出来的人。",
+        "watch_zh": [
+            "He seemed at ease 是关键：他看起来放松，这让后面的死亡更难被战斗逻辑完全解释。",
+            "part of the morning fog or my own imagination 把现实和心理影像叠在一起。",
+        ],
+        "vocab": [
+            {"english": "slivers", "chinese": "细片；一点一点", "usage": "in tiny slivers"},
+            {"english": "repellent", "chinese": "驱虫剂", "usage": "ask for some repellent"},
+            {"english": "ammunition belt", "chinese": "弹药带", "usage": "a gray ammunition belt"},
+            {"english": "stooped", "chinese": "微微弯曲的", "usage": "shoulders were slightly stooped"},
+            {"english": "at ease", "chinese": "放松；不戒备", "usage": "He seemed at ease"},
+            {"english": "muzzled down", "chinese": "枪口朝下", "usage": "weapon in one hand, muzzled down"},
+        ],
+    },
+    {
+        "title": "身体先动，解释后来才追上",
+        "start_segment": 46,
+        "end_segment": 61,
+        "core_zh": "这一页的核心是自动反应：胃里的恐惧、已经拔掉保险、已经蹲起，身体比道德语言更快。",
+        "why_good_zh": "作者连续否定 hate/enemy/morality/politics/duty，把通常战争解释全部撤掉，只留下身体机制。",
+        "watch_zh": [
+            "It was entirely automatic 是关键判词：不是说没有责任，而是说行动发生在完整解释之前。",
+            "before telling myself to throw it 表示自我命令迟到了，身体已经做完。",
+        ],
+        "vocab": [
+            {"english": "crouch", "chinese": "蹲伏", "usage": "come up to a crouch"},
+            {"english": "automatic", "chinese": "自动的；未经思考的", "usage": "It was entirely automatic"},
+            {"english": "ponder", "chinese": "认真思量", "usage": "did not ponder issues"},
+            {"english": "morality", "chinese": "道德", "usage": "issues of morality"},
+            {"english": "evaporate", "chinese": "蒸发；消失", "usage": "just evaporate"},
+            {"english": "lob", "chinese": "高抛", "usage": "lob at high"},
+        ],
+    },
+    {
+        "title": "爆炸之前的慢镜头",
+        "start_segment": 62,
+        "end_segment": 78,
+        "core_zh": "手榴弹在记忆里像镜头定格；他想警告对方，但时间已经越过了可以挽回的点。",
+        "why_good_zh": "强处在声音反差：爆炸不是大片式轰鸣，而是 popping noise 和 small white puff，越小越冷。",
+        "watch_zh": [
+            "camera had clicked 是创伤记忆的定格感：某一瞬间永远停在那里。",
+            "It occurred to me then that... 是意识终于追上现实：他才明白那个人要死。",
+        ],
+        "vocab": [
+            {"english": "freeze", "chinese": "冻结；定格", "usage": "seeming to freeze above me"},
+            {"english": "wisps", "chinese": "缕；丝", "usage": "little wisps of fog"},
+            {"english": "hesitated", "chinese": "迟疑", "usage": "then he hesitated"},
+            {"english": "swiveling", "chinese": "转身；旋转", "usage": "swiveling to his right"},
+            {"english": "popping noise", "chinese": "砰的一声；不大的爆声", "usage": "made a popping noise"},
+            {"english": "star-shaped", "chinese": "星形的", "usage": "a huge star-shaped hole"},
+        ],
+    },
+    {
+        "title": "peril：真正折磨他的不是危险",
+        "start_segment": 79,
+        "end_segment": 88,
+        "core_zh": "这里最难：他说 there was no real peril，意思是事后看来对方大概率会走过去；所以杀人不再能被“自卫危险”轻易包住。",
+        "why_good_zh": "peril 在 grenade 之后出现，力量正来自反差：武器很危险，但叙述者否认当时有真正危险，罪感因此更尖。",
+        "watch_zh": [
+            "good kill 是军事安慰语，试图把事件塞回战争逻辑；但 narrator 的心不接受。",
+            "The words seemed far too complicated 表示所有解释都压不过眼前身体事实。",
+        ],
+        "vocab": [
+            {"english": "peril", "chinese": "危险；迫近的威胁", "usage": "There was no real peril"},
+            {"english": "would have passed by", "chinese": "本来会走过去", "usage": "would have passed by"},
+            {"english": "good kill", "chinese": "军事语境里的合理击杀", "usage": "it was a good kill"},
+            {"english": "shape up", "chinese": "振作；别垮掉", "usage": "should shape up"},
+            {"english": "reversed", "chinese": "情况反过来", "usage": "if things were reversed"},
+            {"english": "gape", "chinese": "张口呆看", "usage": "gape at the fact"},
+        ],
+    },
+    {
+        "title": "结尾：记忆没有被解决，只是不断返回",
+        "start_segment": 89,
+        "end_segment": 97,
+        "core_zh": "多年以后，他仍然没有整理完这件事；那个年轻人会在普通生活里从雾中重新走出来。",
+        "why_good_zh": "强处在循环结构：开头说 keep writing war stories，结尾让影像反复回来，说明写作不是解决，而是承受未解决。",
+        "watch_zh": [
+            "sort it out 是心理整理，不是整理物品。",
+            "dwell on it 是反复想着它；作者说 try not to dwell，但影像仍然回来。",
+        ],
+        "vocab": [
+            {"english": "sort it out", "chinese": "理清；整理明白", "usage": "haven't finished sorting it out"},
+            {"english": "forgive myself", "chinese": "原谅自己", "usage": "Sometimes I forgive myself"},
+            {"english": "dwell on", "chinese": "反复想着；沉溺于", "usage": "try not to dwell on it"},
+            {"english": "ordinary hours", "chinese": "日常时刻", "usage": "ordinary hours of life"},
+            {"english": "secret thought", "chinese": "秘密念头", "usage": "smile at some secret thought"},
+            {"english": "bends back", "chinese": "弯回去", "usage": "where it bends back into the fog"},
+        ],
+    },
+]
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--index", type=int, default=0, help="Listening Reader audio index to bake")
@@ -142,6 +277,7 @@ def main() -> int:
         ],
         "codex_comment_zh": "这篇本地课文的难点不是“发生了什么”，而是美国战争叙事里个人责任、创伤记忆和写作动机怎样缠在一起。",
         "codex_comment_en": "The passage is not asking you to admire battle; it asks why a memory keeps returning when ordinary explanations fail.",
+        "blocks": LESSON_BLOCKS,
         "segments": baked_segments,
         "text_en": " ".join(s.get("text", "") for s in segments),
     }

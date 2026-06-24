@@ -1,5 +1,60 @@
 # WordForge Worklog
 
+## 2026-06-24 - Thick Scaffold Vocab Drill
+
+Operator: Codex.
+
+Context:
+- Ming pointed out that a quiz-first vocabulary UI is the wrong learning shape:
+  if it only produces about ten understood words per day, long-term retention
+  will be far too low.
+- The desired shape is a large learning card: one question, four option words,
+  Chinese translation of the prompt, and clear Chinese notes for each word's
+  meaning, usage, and trap.
+
+Current state:
+- Vocab drill now opens as a single-column learning surface. The old left-side
+  `Add a word` panel no longer takes half the screen; it is collapsed below the
+  main drill.
+- Each discrimination drill can request a cached Chinese scaffold with:
+  prompt translation, context, blank role, option cards, and a final choosing
+  rule.
+- The base drill remains local. The Chinese scaffold is generated only when
+  missing, then cached in a local gitignored JSONL file.
+
+Files changed:
+- `.gitignore` - ignores local scaffold cache and lock files.
+- `wordforge/drill_scaffold.py` - builds and caches thick Chinese drill
+  scaffolds.
+- `wordforge/studio.py` - adds `/api/drill/scaffold`.
+- `wordforge/studio_page.html` - renders the single-column Vocab UI and rich
+  option cards.
+- `README.md` - documents the scaffold-first Vocab behavior.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile wordforge/drill_scaffold.py wordforge/studio.py wordforge/app.py
+# pass
+
+curl http://127.0.0.1:8764/api/drill
+# HTTP 200
+
+POST /api/drill/scaffold for a deleterious/noxious drill
+# returned fallback=false, 4 option cards, Chinese prompt, context, blank role,
+# and a choosing rule
+```
+
+Browser QA:
+- Chrome at `http://127.0.0.1:8764/` showed the Vocab drill as a large
+  single-column card with Chinese prompt/scaffold and four rich option cards.
+- `Add a word` is present only as a collapsed drawer below the drill.
+
+Boundaries:
+- `data/lexicon.jsonl` and `data/reviews.jsonl` contain live learner history and
+  were intentionally left uncommitted in this code change.
+- First-time scaffold generation still uses the configured provider; after that
+  it is local cache.
+
 ## 2026-06-24 - Put Studio Into Daily Use
 
 Operator: Codex.

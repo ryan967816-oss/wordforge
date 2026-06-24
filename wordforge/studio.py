@@ -28,6 +28,7 @@ from typing import Any
 
 from . import (
     corpus,
+    drill_scaffold,
     drills,
     express,
     grounding,
@@ -291,6 +292,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 _json_response(self, {"created": created, "word": _word_summary(word)})
             elif self.path == "/api/drill/answer":
                 _json_response(self, _answer_drill(req))
+            elif self.path == "/api/drill/scaffold":
+                words = store.load_words()
+                word = store.find_word(words, str(req.get("headword", "")))
+                if not word:
+                    raise ValueError("word not found")
+                _json_response(self, drill_scaffold.build(word, req.get("drill") or {}))
             elif self.path == "/api/expression/ladder":
                 _json_response(self, express.ladder(str(req.get("thought", ""))))
             elif self.path == "/api/expression/grade":

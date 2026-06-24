@@ -10,6 +10,8 @@ WordForge.app/
 # your learning history is meant to be git-versioned and diffable.
 models/
 data/listening/
+data/drill_scaffolds.jsonl
+data/.drill_scaffolds.lock
 data/corpus/local/
 data/corpus/sources_local/
 .claude/

@@ -28,7 +28,10 @@ and graded on production — not flip-a-card.
     near-synonym (the answer may be a near-synonym, not the headword — that's the
     point);
   - *antonym contrast*: supply the opposite.
-  Graded locally from stored data, so daily drilling is instant and offline.
+  The Studio UI adds a thick Chinese scaffold before the light test: prompt
+  translation, context, blank role, and four large option cards with Chinese
+  meaning, usage, and why each near-synonym may fail. Generated scaffolds are
+  cached locally, while the underlying drill stays local and instant.
 - **My mistakes & weak words** → every answer is logged to `data/reviews.jsonl`
   (with right/wrong), and each word tracks its miss count (`lapses`) and a
   productive-mastery score. This view lists your most-missed words and recent
@@ -125,6 +128,11 @@ replacing the engines: vocab drills use the same store/scheduler, Expression
 uses the same Claude structured-output ladder, Listening Reader uses the same
 whisper.cpp cache, Writing uses the same rubric grader, and Translate uses the
 same translation/back-translation grader plus a pre-baked passage corpus.
+
+The Vocab tab is now a single-column learning surface: `Next drill` is the main
+screen, with the prompt and near-synonym scaffold kept large enough to read.
+`Add a word` is still available, but collapsed below the drill so it does not
+crowd the learning task.
 
 ```
 ./run_native.command                        # native local desktop window

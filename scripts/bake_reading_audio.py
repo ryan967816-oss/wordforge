@@ -81,6 +81,73 @@ def _assign_timings(package: dict, duration_ms: int) -> None:
         cursor = segment["end_ms"]
 
 
+def _segment_ranges_for_chunks(segments: list[dict], chunks: list[str]) -> list[tuple[int, int]]:
+    """Map each TTS chunk back to the sentence segments used to build it."""
+    ranges: list[tuple[int, int]] = []
+    idx = 0
+    texts = [re.sub(r"\s+", " ", str(s.get("text_en", "")).strip()) for s in segments]
+    for chunk in chunks:
+        start = idx
+        cur = ""
+        while idx < len(texts):
+            candidate = (cur + " " + texts[idx]).strip()
+            # Allow a few chars of quote/space normalization drift.
+            if cur and len(candidate) > len(chunk) + 5:
+                break
+            cur = candidate
+            idx += 1
+            if len(cur) >= len(chunk) - 5:
+                break
+        ranges.append((start, idx))
+    if idx < len(texts) and ranges:
+        start, _ = ranges[-1]
+        ranges[-1] = (start, len(texts))
+    return ranges
+
+
+def _assign_timings_from_parts(package: dict, final_audio: Path, text: str, final_duration_ms: int) -> bool:
+    """Use real per-chunk mp3 durations for tighter text/audio sync."""
+    segments = package.get("segments", []) or []
+    if not segments or final_duration_ms <= 0:
+        return False
+    chunks = deepgram_tts.chunk_text(text, max_chars=1200)
+    parts = [final_audio.with_name(f"{final_audio.stem}.part-{i:03d}{final_audio.suffix}") for i in range(1, len(chunks) + 1)]
+    if not all(p.exists() for p in parts):
+        return False
+
+    part_durations = [_duration_ms(p) for p in parts]
+    if not all(d > 0 for d in part_durations):
+        return False
+    total_parts = sum(part_durations)
+    scale = final_duration_ms / total_parts if total_parts else 1.0
+    ranges = _segment_ranges_for_chunks(segments, chunks)
+
+    cursor = 0
+    for (start, end), part_duration in zip(ranges, part_durations):
+        chunk_duration = max(1, round(part_duration * scale))
+        chunk_end = min(final_duration_ms, cursor + chunk_duration)
+        group = segments[start:end]
+        if not group:
+            cursor = chunk_end
+            continue
+        weights = [max(1, len(str(s.get("text_en", "")))) for s in group]
+        total_weight = sum(weights)
+        local = cursor
+        for offset, (segment, weight) in enumerate(zip(group, weights)):
+            if offset == len(group) - 1:
+                seg_end = chunk_end
+            else:
+                seg_end = cursor + round((sum(weights[: offset + 1]) / total_weight) * chunk_duration)
+            segment["start_ms"] = local
+            segment["end_ms"] = max(local + 1, int(seg_end))
+            local = segment["end_ms"]
+        cursor = chunk_end
+    if segments:
+        segments[-1]["end_ms"] = final_duration_ms
+    package["audio_timing"] = "chunk-duration-proportional"
+    return True
+
+
 def _load_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
@@ -155,7 +222,9 @@ def bake_package(
     package["audio_speed"] = speed
     if duration_ms:
         package["audio_duration_ms"] = duration_ms
-        _assign_timings(package, duration_ms)
+        if not _assign_timings_from_parts(package, path, text, duration_ms):
+            package["audio_timing"] = "global-character-proportional"
+            _assign_timings(package, duration_ms)
     return {"id": package_id, "file": filename, "duration_ms": duration_ms, "chars": len(text)}
 
 

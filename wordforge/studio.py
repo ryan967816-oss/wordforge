@@ -75,6 +75,7 @@ def _html_response(handler: http.server.BaseHTTPRequestHandler, html: str) -> No
     body = html.encode("utf-8")
     handler.send_response(200)
     handler.send_header("Content-Type", "text/html; charset=utf-8")
+    handler.send_header("Cache-Control", "no-store, max-age=0")
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
     handler.wfile.write(body)

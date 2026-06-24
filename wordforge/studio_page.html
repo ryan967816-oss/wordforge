@@ -575,6 +575,7 @@ async function api(path, opts={}){
 }
 
 function showView(name){
+  if(!$(name)) name = "vocab";
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id===name));
   document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active", b.dataset.view===name));
   try{localStorage.setItem("wf-view", name);}catch(e){}
@@ -992,8 +993,9 @@ $("tlMin").onclick=()=>{ if(nativeReady() && pywebview.api.minimize) pywebview.a
   try{ readingKind = localStorage.getItem("wf-reading-kind") || "book"; }catch(e){}
   if($("readingKindSelect")) $("readingKindSelect").value = readingKind;
   if($("readingAudio")) $("readingAudio").ontimeupdate = syncReadingAudioTime;
+  const requested = new URLSearchParams(location.search).get("view");
   const saved = (()=>{try{return localStorage.getItem("wf-view");}catch(e){return null;}})();
-  if(saved) showView(saved);
+  showView(requested || saved || "vocab");
   loadPrompts().catch(()=>{}); loadAudioList().catch(()=>{}); loadReadingPackages().catch(()=>{}); refreshAll().catch(()=>{});
 })();
 

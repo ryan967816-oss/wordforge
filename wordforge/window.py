@@ -19,6 +19,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import urllib.parse
 
 # Make the studio server NOT pop open a browser tab — we host it in our window.
 os.environ.setdefault("WORDFORGE_NO_OPEN", "1")
@@ -103,7 +104,9 @@ def run() -> None:
     #    corpus-backed Translate API.
     _ensure_backend()
 
-    url = f"http://localhost:{studio.PORT}"
+    # Force the native shell into the reader and bust WKWebView's page cache.
+    qs = urllib.parse.urlencode({"view": "reader", "native": "1", "t": str(int(time.time()))})
+    url = f"http://localhost:{studio.PORT}?{qs}"
     api = _Api()
 
     # 2) open a native window. Try the full glassy treatment first; fall back

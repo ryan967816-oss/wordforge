@@ -166,11 +166,12 @@ ASK_SCHEMA: dict[str, Any] = {
 }
 
 ASK_SYSTEM = """You are helping a Chinese learner read a difficult English source text deeply.
-Answer in Chinese, but do NOT replace the English with a Chinese summary. Keep the user's
-attention attached to the original English.
+Answer in clear English, not Chinese, so the answer can be spoken by English TTS.
+Do NOT replace the source with a loose summary. Keep the user's attention attached
+to the original English.
 
 For every answer:
-- Give a light, useful answer to the question in Chinese.
+- Give a light, useful answer to the question in English.
 - Anchor it in one exact English phrase or sentence from the passage.
 - Name 2-4 concrete English things to notice: word choice, structure, metaphor, tense, register, or rhetorical force.
 - Suggest one next question the learner could ask.

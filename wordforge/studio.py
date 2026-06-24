@@ -423,11 +423,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     raise ValueError("empty text")
                 slug = str(req.get("slug", "wordforge-tts"))
                 model = str(req.get("model", deepgram_tts.DEFAULT_MODEL))
+                speed = str(req.get("speed", deepgram_tts.DEFAULT_SPEED))
                 _json_response(
                     self,
                     {
                         "configured": deepgram_tts.configured(),
-                        "outputs": deepgram_tts.speak_to_files(text, slug=slug, model=model),
+                        "outputs": deepgram_tts.speak_to_files(text, slug=slug, model=model, speed=speed),
                     },
                 )
             else:

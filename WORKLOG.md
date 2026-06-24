@@ -1,5 +1,44 @@
 # WordForge Worklog
 
+## 2026-06-24 - Full Self-Reliance Reader Package
+
+Operator: Codex.
+
+Context:
+- Ming wanted to read the whole Emerson `Self-Reliance`, not only four short
+  practice excerpts.
+- Ming wanted Deepgram to use a deep male English voice, faster than the first
+  slow tests.
+
+Current state:
+- `data/reading_packages/emerson_self_reliance_full.jsonl` contains the full
+  Project Gutenberg `Self-Reliance` essay as a Reader package.
+- The full package has 489 sentence segments.
+- Local Deepgram audio was baked with `aura-2-zeus-en` at `speed=1.2`.
+- The generated full mp3 is local-only:
+  `data/reading_audio/emerson-self-reliance-complete.mp3`.
+- The native window opens Reader with the complete package selected.
+- Reading questions are now instructed to answer in English so Deepgram TTS can
+  speak answers reliably.
+
+Verification:
+```bash
+./.venv/bin/python scripts/bake_self_reliance_full.py
+# chars: 55145
+# segments: 489
+
+./.venv/bin/python scripts/bake_reading_audio.py \
+  --path data/reading_packages/emerson_self_reliance_full.jsonl \
+  --model aura-2-zeus-en --speed 1.2 --workers 10
+# duration_ms: 2760048
+# file: emerson-self-reliance-complete.mp3
+```
+
+Boundary:
+- Generated audio remains gitignored under `data/reading_audio/`.
+- The committed package records local audio metadata, but WordForge hides the
+  audio flag if the mp3 is absent on another machine.
+
 ## 2026-06-24 - Deepgram Key Plumbing Only
 
 Operator: Codex.

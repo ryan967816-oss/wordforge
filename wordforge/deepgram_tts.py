@@ -21,7 +21,10 @@ from typing import Any
 
 from . import config
 
-DEFAULT_MODEL = "aura-2-thalia-en"
+# Deep masculine English voice. Deepgram's model catalog describes Zeus as
+# masculine, deep, trustworthy, and smooth.
+DEFAULT_MODEL = "aura-2-zeus-en"
+DEFAULT_SPEED = "1.2"
 MAX_CHARS = 1900
 
 
@@ -71,14 +74,14 @@ def chunk_text(text: str, max_chars: int = MAX_CHARS) -> list[str]:
     return chunks
 
 
-def _request_mp3(text: str, model: str) -> bytes:
+def _request_mp3(text: str, model: str, speed: str = DEFAULT_SPEED) -> bytes:
     key = config.get_deepgram_api_key()
     if not key:
         raise RuntimeError("Deepgram key is not configured. Run scripts/set_deepgram_key.py first.")
     if len(text) > MAX_CHARS:
         raise ValueError(f"text chunk is too long for Deepgram TTS ({len(text)} chars)")
 
-    query = urllib.parse.urlencode({"model": model})
+    query = urllib.parse.urlencode({"model": model, "speed": speed})
     url = f"https://api.deepgram.com/v1/speak?{query}"
     body = json.dumps({"text": text}, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
@@ -92,14 +95,19 @@ def _request_mp3(text: str, model: str) -> bytes:
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=45) as resp:
+        with urllib.request.urlopen(req, timeout=120) as resp:
             return resp.read()
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")[:500]
         raise RuntimeError(f"Deepgram TTS failed: HTTP {e.code}: {detail}") from e
 
 
-def speak_to_files(text: str, slug: str = "", model: str = DEFAULT_MODEL) -> list[dict[str, Any]]:
+def speak_to_files(
+    text: str,
+    slug: str = "",
+    model: str = DEFAULT_MODEL,
+    speed: str = DEFAULT_SPEED,
+) -> list[dict[str, Any]]:
     chunks = chunk_text(text)
     base = safe_slug(slug or text[:48])
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -108,13 +116,14 @@ def speak_to_files(text: str, slug: str = "", model: str = DEFAULT_MODEL) -> lis
         suffix = f"-{i:02d}" if len(chunks) > 1 else ""
         name = f"{base}-{stamp}{suffix}.mp3"
         path = audio_dir() / name
-        path.write_bytes(_request_mp3(chunk, model))
+        path.write_bytes(_request_mp3(chunk, model, speed=speed))
         outputs.append(
             {
                 "file": name,
                 "path": str(path),
                 "chars": len(chunk),
                 "model": model,
+                "speed": speed,
                 "part": i,
                 "parts": len(chunks),
             }

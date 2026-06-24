@@ -216,6 +216,8 @@
   .seg .txt{font:400 15px/1.6 var(--sans); color:var(--frost-400);}
   .seg.active .txt{color:var(--frost-100);}
   .reader-grid{display:grid; grid-template-columns:1fr; gap:14px;}
+  .reading-control-card{position:sticky; top:0; z-index:30; margin-top:0; background:rgba(13,17,23,.96);
+    backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);}
   .reading-head{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
   .reading-title{display:flex; flex-direction:column; gap:3px;}
   .reading-title b{font:600 18px var(--sans); color:var(--frost-100);}
@@ -385,7 +387,7 @@
         <!-- EXPRESSION -->
         <section id="express" class="view">
           <h1>Expression Ladder</h1>
-          <div class="card">
+          <div class="card reading-control-card">
             <div class="eyebrow" style="margin-bottom:8px">A plain thought</div>
             <textarea id="thought" rows="2" placeholder="his eyes are blue and striking"></textarea>
             <div style="margin-top:12px; display:flex; align-items:center; gap:12px">
@@ -424,7 +426,7 @@
               </label>
               <label>
                 <div class="eyebrow" style="margin-bottom:8px">Pick text</div>
-                <select id="readingPackageSelect"></select>
+                <select id="readingPackageSelect" onchange="loadReadingPackage()"></select>
               </label>
               <button class="btn" id="readingLoadBtn" onclick="loadReadingPackage()">Load</button>
             </div>
@@ -800,6 +802,8 @@ function renderReadingPackageOptions(){
   sel.innerHTML = filtered.length
     ? filtered.map(p=>`<option value="${esc(p.id)}">${esc(p.title)} — ${esc(p.segment_count)} lines${p.has_audio?" · audio":""}</option>`).join("")
     : `<option value="">${esc(empty)}</option>`;
+  const requested = new URLSearchParams(location.search).get("package");
+  if(requested && filtered.some(p=>p.id===requested)) sel.value = requested;
 }
 async function loadReadingPackage(){
   const id=$("readingPackageSelect")?.value;
@@ -840,6 +844,9 @@ function renderReadingPackage(){
     if(pkg.audio_index!==undefined && pkg.audio_index!==null){
       audio.src="/api/listening/audio?i="+encodeURIComponent(pkg.audio_index);
       audio.classList.add("show");
+    }else if(pkg.audio_file){
+      audio.src="/api/tts/audio?file="+encodeURIComponent(pkg.audio_file);
+      audio.classList.add("show");
     }else if(pkg.audio_url){
       audio.src=pkg.audio_url;
       audio.classList.add("show");
@@ -853,7 +860,11 @@ function renderReadingPackage(){
     <div class="reading-lyrics" id="readingLyrics">${(pkg.segments||[]).map((s,i)=>renderReadingSegment(s,i)).join("")}</div>
   </div>`;
   $("readingAskBox").style.display="block";
+  const lyrics=$("readingLyrics");
+  if(lyrics) lyrics.scrollTop=0;
+  if(audio && audio.src) audio.currentTime=0;
   selectReadingSegment(0);
+  setTimeout(()=>selectReadingSegment(0), 0);
 }
 function renderReadingSegment(s,i){
   const palette=(s.palette||[]).map(p=>`<span class="pill" title="${esc(p.usage||"")}">${esc(p.english)} · ${esc(p.chinese)}</span>`).join("");

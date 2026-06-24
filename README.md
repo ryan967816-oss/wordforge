@@ -255,6 +255,30 @@ Rebuild it from the committed corpus with:
 ./.venv/bin/python scripts/bake_emerson_reading_packages.py
 ```
 
+Bake local Deepgram audio for the committed book packages with:
+
+```bash
+./.venv/bin/python scripts/bake_reading_audio.py
+```
+
+This writes stable local mp3 files and sentence timing hints, so the Reader can
+show an audio bar and keep the lyric scroll tied to playback.
+
+For the full `Self-Reliance` essay:
+
+```bash
+./.venv/bin/python scripts/bake_self_reliance_full.py
+./.venv/bin/python scripts/bake_reading_audio.py \
+  --path data/reading_packages/emerson_self_reliance_full.jsonl \
+  --model aura-2-zeus-en \
+  --speed 1.2 \
+  --workers 10
+```
+
+The full package is a fast-reading map first: complete public-domain text,
+sentence splitting, English TTS, and a sentence-following lyric reader. Close
+Chinese scaffolds are still best added to selected passages as you read.
+
 Deepgram TTS is deliberately a small utility, not a Voice Agent integration.
 Once a rotated Deepgram key is stored with hidden input:
 

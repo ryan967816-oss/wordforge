@@ -105,7 +105,14 @@ def run() -> None:
     _ensure_backend()
 
     # Force the native shell into the reader and bust WKWebView's page cache.
-    qs = urllib.parse.urlencode({"view": "reader", "native": "1", "t": str(int(time.time()))})
+    qs = urllib.parse.urlencode(
+        {
+            "view": "reader",
+            "package": "emerson-self-reliance-complete",
+            "native": "1",
+            "t": str(int(time.time())),
+        }
+    )
     url = f"http://localhost:{studio.PORT}?{qs}"
     api = _Api()
 

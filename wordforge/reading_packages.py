@@ -26,6 +26,27 @@ def emerson_path() -> Path:
     return reading_package_dir() / "emerson_self_reliance.jsonl"
 
 
+def audio_path(name: str) -> Path:
+    return config.data_dir() / "reading_audio" / name
+
+
+def audio_exists(name: Any) -> bool:
+    return isinstance(name, str) and bool(name) and audio_path(name).exists()
+
+
+def with_available_audio(package: dict[str, Any]) -> dict[str, Any]:
+    """Hide generated audio metadata when the mp3 is not present on this Mac."""
+    p = dict(package)
+    if p.get("audio_file") and not audio_exists(p.get("audio_file")):
+        p.pop("audio_file", None)
+        p.pop("audio_duration_ms", None)
+        p["segments"] = [
+            {k: v for k, v in dict(s).items() if k not in {"start_ms", "end_ms"}}
+            for s in p.get("segments", []) or []
+        ]
+    return p
+
+
 def package_paths() -> list[Path]:
     paths = sorted(reading_package_dir().glob("*.jsonl"))
     paths.extend(sorted(local_package_dir().glob("*.jsonl")))
@@ -70,19 +91,23 @@ def list_packages() -> list[dict[str, Any]]:
             "level": p.get("level", ""),
             "category": p.get("category", "book"),
             "local": bool(p.get("local", False)),
-            "has_audio": p.get("audio_index") is not None or bool(p.get("audio_url", "")),
+            "has_audio": (
+                p.get("audio_index") is not None
+                or bool(p.get("audio_url", ""))
+                or audio_exists(p.get("audio_file"))
+            ),
             "segment_count": len(p.get("segments", []) or []),
             "why_selected": p.get("why_selected", ""),
             "comment_zh": p.get("codex_comment_zh", ""),
         }
-        for p in load_packages()
+        for p in (with_available_audio(p) for p in load_packages())
     ]
 
 
 def get_package(pid: str) -> dict[str, Any] | None:
     for package in load_packages():
         if package.get("id") == pid:
-            return package
+            return with_available_audio(package)
     return None
 
 

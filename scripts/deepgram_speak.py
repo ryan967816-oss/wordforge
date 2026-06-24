@@ -20,10 +20,11 @@ def main() -> None:
     ap.add_argument("text", nargs="*", help="Text to speak. If omitted, read stdin.")
     ap.add_argument("--slug", default="wordforge-tts", help="Safe output filename prefix.")
     ap.add_argument("--model", default=deepgram_tts.DEFAULT_MODEL)
+    ap.add_argument("--speed", default=deepgram_tts.DEFAULT_SPEED)
     args = ap.parse_args()
 
     text = " ".join(args.text).strip() or sys.stdin.read().strip()
-    outputs = deepgram_tts.speak_to_files(text, slug=args.slug, model=args.model)
+    outputs = deepgram_tts.speak_to_files(text, slug=args.slug, model=args.model, speed=args.speed)
     print(json.dumps({"outputs": outputs}, ensure_ascii=False, indent=2))
 
 

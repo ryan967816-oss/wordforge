@@ -1,5 +1,28 @@
 # WordForge Worklog
 
+## 2026-06-24 - Deepgram Key Plumbing Only
+
+Operator: Codex.
+
+Context:
+- Ming shared a Deepgram key but noted that Deepgram Voice Agent feels too
+  complex to integrate right now.
+
+Current state:
+- WordForge can now read `DEEPGRAM_API_KEY` from env or macOS Keychain.
+- `scripts/set_deepgram_key.py` stores a Deepgram key using hidden input.
+- No Deepgram Voice Agent integration was attempted.
+
+Files changed:
+- `wordforge/config.py` - adds Deepgram key getter/setter.
+- `scripts/set_deepgram_key.py` - hidden-input Keychain helper.
+- `README.md` / `MULTIMODAL_READING_PLAN.md` - document safe key storage and the
+  current boundary.
+
+Boundary:
+- The key that appeared in chat was not written to code, git, or docs. Rotate it
+  before storing a new one.
+
 ## 2026-06-24 - Vocab Cache + Blind Mode + Reading Model Tiering
 
 Operator: Codex.

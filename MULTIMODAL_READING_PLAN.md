@@ -97,8 +97,15 @@ Deepgram is useful when there is audio that needs reliable timestamps. It does
 not by itself solve the whole reading mode. If there is no original audio, the
 pipeline still needs a TTS source first.
 
-Current environment note: `DEEPGRAM_API_KEY` is not set on this Mac. Do not build
-or claim a Deepgram pipeline until a key exists in env/Keychain.
+Deepgram keys should live in env or macOS Keychain, never in git. Store a rotated
+key with:
+
+```bash
+./.venv/bin/python scripts/set_deepgram_key.py
+```
+
+Do not build or claim a Deepgram pipeline until a key exists in env/Keychain and
+a one-file smoke test has passed.
 
 ## First Slice
 

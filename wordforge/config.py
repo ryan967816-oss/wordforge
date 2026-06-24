@@ -20,6 +20,7 @@ APP_NAME = "WordForge"
 KEYCHAIN_SERVICE = "WordForge"
 KEYCHAIN_ACCOUNT = "ANTHROPIC_API_KEY"
 DEEPSEEK_KEYCHAIN_ACCOUNT = "DEEPSEEK_API_KEY"
+DEEPGRAM_KEYCHAIN_ACCOUNT = "DEEPGRAM_API_KEY"
 PROVIDER_KEYCHAIN_ACCOUNT = "WORDFORGE_PROVIDER"
 
 # Default model. claude-opus-4-8 is the most capable; set WORDFORGE_MODEL to
@@ -121,6 +122,18 @@ def get_deepseek_api_key() -> str | None:
         return None
 
 
+def get_deepgram_api_key() -> str | None:
+    key = os.environ.get("DEEPGRAM_API_KEY")
+    if key:
+        return key
+    try:
+        import keyring
+
+        return keyring.get_password(KEYCHAIN_SERVICE, DEEPGRAM_KEYCHAIN_ACCOUNT)
+    except Exception:
+        return None
+
+
 def set_api_key(key: str) -> None:
     import keyring
 
@@ -131,6 +144,12 @@ def set_deepseek_api_key(key: str) -> None:
     import keyring
 
     keyring.set_password(KEYCHAIN_SERVICE, DEEPSEEK_KEYCHAIN_ACCOUNT, key)
+
+
+def set_deepgram_api_key(key: str) -> None:
+    import keyring
+
+    keyring.set_password(KEYCHAIN_SERVICE, DEEPGRAM_KEYCHAIN_ACCOUNT, key)
 
 
 def set_provider(provider: str) -> None:

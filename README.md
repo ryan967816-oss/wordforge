@@ -96,6 +96,9 @@ Provide API keys one of these ways:
   to your macOS **Keychain** for Claude/Anthropic.
 - DeepSeek keys can also be saved to the same Keychain service by calling
   `wordforge.config.set_deepseek_api_key(...)`; do not commit keys to files.
+- Deepgram keys are optional and only needed for future audio timestamp / live
+  speech work. Save one with hidden input:
+  `./.venv/bin/python scripts/set_deepgram_key.py`.
 - Or export `ANTHROPIC_API_KEY` / `DEEPSEEK_API_KEY` in your shell profile
   (`~/.zshrc`) before launching via `run.command`.
 

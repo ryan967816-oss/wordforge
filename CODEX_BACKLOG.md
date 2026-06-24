@@ -113,6 +113,20 @@ scrolling transcript in the studio. Needs `DEEPGRAM_API_KEY` (not currently set;
 ask Ming, store in env/Keychain, never commit).
 **Acceptance.** A "Live" tab transcribes a real-time source as it speaks.
 
+## P9b — Multimodal passage reader package
+**Goal.** Turn one hard passage, starting with Emerson `Trust Thyself`, into a
+pre-baked multimodal object: audio, timestamped English scroll, Chinese
+word-order component scaffold with tense tags, DS explanation, and selected
+sentence Ask.
+**Where.** See `MULTIMODAL_READING_PLAN.md`. Extend Studio Reader or add a
+`Reading Lab` panel. Store packages under gitignored data for generated audio
+and committed/public JSON where copyright allows.
+**Boundary.** Deepgram is useful for audio timestamps if `DEEPGRAM_API_KEY` is
+available. It is not a replacement for TTS/original audio, and it should not be
+called at runtime if the package is already baked.
+**Acceptance.** Open `Trust Thyself`, press play, English scrolls; each sentence
+has component Chinese; selected sentence Ask is the only live question path.
+
 ## P10 — Packaging & tests
 **Goal.** Make it a real distributable app + a test suite.
 **Where.** Either bundle the studio web app behind a menu-bar/Tauri launcher, or

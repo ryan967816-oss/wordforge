@@ -132,7 +132,21 @@ same translation/back-translation grader plus a pre-baked passage corpus.
 The Vocab tab is now a single-column learning surface: `Next drill` is the main
 screen, with the prompt and near-synonym scaffold kept large enough to read.
 `Add a word` is still available, but collapsed below the drill so it does not
-crowd the learning task.
+crowd the learning task. The mode selector lets you switch between
+`Scaffold / 脚手架` and `Blind test / 盲测`: learn with full Chinese support, then
+test retrieval without the support.
+
+To pre-bake the Chinese scaffold cache for all existing multiple-choice vocab
+drills, run:
+
+```
+./.venv/bin/python scripts/prebake_drill_scaffolds.py
+```
+
+The script only generates missing cache rows, so it is safe to rerun. Use this
+for Vocab-scale support, where the source data already contains the English
+nuance. For literary passage explanations, use the stronger-model/Codex curation
+path described in `MULTIMODAL_READING_PLAN.md`.
 
 ```
 ./run_native.command                        # native local desktop window
@@ -277,6 +291,11 @@ no per-minute cost. (Deepgram-style live streaming is intentionally not used:
 for pre-recorded files local whisper is better; a live/streaming mode can be
 added later if you want to transcribe a lecture in real time.) Needs the same
 one-time `install_listening.command` setup.
+
+For the next reading shape, see `MULTIMODAL_READING_PLAN.md`: a passage package
+with audio, timestamped English scroll, Chinese word-order components, DS
+explanations, and selected-sentence Ask. Deepgram can provide timestamps when
+there is audio and a key, but it does not replace the need for an audio source.
 
 ## Optional: standalone .app
 

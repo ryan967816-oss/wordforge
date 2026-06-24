@@ -99,6 +99,27 @@ def _key(headword: str, drill: dict[str, Any]) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def key_for(headword: str, drill: dict[str, Any]) -> str:
+    return _key(headword, drill)
+
+
+def cached_keys() -> set[str]:
+    return set(_read_cache().keys())
+
+
+def word_drills(word: dict[str, Any], *, multiple_choice_only: bool = True) -> list[dict[str, Any]]:
+    drills: list[dict[str, Any]] = []
+    for d in word.get("discrimination_drills", []) or []:
+        row = {"kind": "discrimination", **d}
+        if not multiple_choice_only or row.get("options"):
+            drills.append(row)
+    for d in word.get("antonym_drills", []) or []:
+        row = {"kind": "antonym", **d}
+        if not multiple_choice_only or row.get("options"):
+            drills.append(row)
+    return drills
+
+
 def _read_cache() -> dict[str, dict[str, Any]]:
     path = cache_path()
     if not path.exists():

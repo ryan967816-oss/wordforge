@@ -1,5 +1,60 @@
 # WordForge Worklog
 
+## 2026-06-24 - Vocab Cache + Blind Mode + Reading Model Tiering
+
+Operator: Codex.
+
+Context:
+- Ming wanted Vocab scaffolds to stop regenerating live per question, then asked
+  whether bulk pre-baking should use Codex/strong-model curation rather than DS,
+  especially for book understanding.
+- The live distinction is now explicit: DS is acceptable for low-risk bulk
+  scaffolds when the English nuance is already present; book interpretation
+  needs Codex/strong-model curation into a pre-baked data package.
+
+Current state:
+- Vocab has a `Mode` selector:
+  - `Scaffold / 脚手架` shows the thick Chinese support.
+  - `Blind test / 盲测` hides the scaffold and does not request it.
+- `scripts/prebake_drill_scaffolds.py` can fill missing
+  `data/drill_scaffolds.jsonl` rows ahead of time. It is resumable and only
+  generates missing cache rows.
+- A partial DS pre-bake generated 61 scaffold rows, then was intentionally
+  stopped after the quality boundary discussion.
+- `MULTIMODAL_READING_PLAN.md` defines the passage-reader direction: audio,
+  timestamped English scroll, English-order Chinese components, DS bulk labels,
+  strong-model/Codex professor explanation, and selected-sentence Ask.
+
+Files changed:
+- `wordforge/drill_scaffold.py` - exposes cache keys and drill iteration helpers.
+- `scripts/prebake_drill_scaffolds.py` - batch pre-bake script for Vocab
+  scaffold cache.
+- `wordforge/studio_page.html` - adds Vocab scaffold/blind selector and avoids
+  scaffold requests in blind mode.
+- `MULTIMODAL_READING_PLAN.md` - specifies the multimodal reading package and
+  model-tier boundary.
+- `README.md` / `CODEX_BACKLOG.md` - document the new workflow and reading task.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile wordforge/drill_scaffold.py scripts/prebake_drill_scaffolds.py
+# pass
+
+node - <<'NODE'
+# parsed Studio embedded JS with new Function(...)
+# js parse ok
+NODE
+
+./.venv/bin/python scripts/prebake_drill_scaffolds.py --dry-run
+# words: 226
+# missing scaffolds: 584
+```
+
+Boundaries:
+- `data/drill_scaffolds.jsonl` remains local/gitignored.
+- DS should not be treated as a professor for Emerson/Thoreau/Douglass/Shelley
+  explanations. Use stronger-model/Codex curation for those reading packages.
+
 ## 2026-06-24 - Correct Back-Translation Source
 
 Operator: Codex.

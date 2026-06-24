@@ -66,6 +66,15 @@ Your API key is embedded in a user-only (`chmod 600`) plist under
 `~/Library/LaunchAgents/` (never in the repo). To stop it for good, double-click
 `uninstall_login_item.command`.
 
+For the reading Studio backend, **double-click
+`install_studio_login_item.command`**. This keeps the local Studio server alive
+at `http://127.0.0.1:8764`, so Translate/Reader routes are ready without asking
+Codex to wake anything. To remove that backend service, double-click
+`uninstall_studio_login_item.command`.
+
+Once the menu-bar app is running, use **Open Studio Reader** from the 📖 menu to
+open the native reading window.
+
 > On a MacBook with a notch, the 📖 icon can hide behind the notch when the menu
 > bar is full. A free menu-bar manager like **Ice** (`brew install --cask
 > jordanbaird-ice`) gives you a clickable overflow so nothing hides.

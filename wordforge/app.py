@@ -19,6 +19,7 @@ import queue
 import subprocess
 import threading
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable
 
 import rumps
@@ -52,6 +53,7 @@ class WordForgeApp(rumps.App):
             rumps.MenuItem("Write a sentence (graded)…", callback=self.on_use_word),
             rumps.MenuItem("Look up a word…", callback=self.on_lookup),
             rumps.MenuItem("Upgrade an article…", callback=self.on_upgrade),
+            rumps.MenuItem("Open Studio Reader", callback=self.on_open_studio),
             None,
             rumps.MenuItem("Stats", callback=self.on_stats),
             rumps.MenuItem("Open data folder", callback=self.on_open_data),
@@ -406,6 +408,29 @@ class WordForgeApp(rumps.App):
 
     def on_open_data(self, _sender: Any) -> None:
         subprocess.run(["open", str(config.data_dir())], check=False)
+
+    def on_open_studio(self, _sender: Any) -> None:
+        if subprocess.run(
+            ["pgrep", "-f", r"-m wordforge\.window"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        ).returncode == 0:
+            self._alert("Studio already open", "Use the existing WordForge Studio window.")
+            return
+
+        repo = Path(__file__).resolve().parent.parent
+        py = repo / ".venv/bin/python"
+        log_path = Path.home() / "Library/Logs/WordForge-Studio.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("a", encoding="utf-8") as log:
+            subprocess.Popen(
+                [str(py), "-m", "wordforge.window"],
+                cwd=str(repo),
+                stdout=log,
+                stderr=log,
+                start_new_session=True,
+            )
 
     def on_settings(self, _sender: Any) -> None:
         has_key = bool(config.get_api_key())

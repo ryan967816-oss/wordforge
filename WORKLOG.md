@@ -1,5 +1,60 @@
 # WordForge Worklog
 
+## 2026-06-24 - Put Studio Into Daily Use
+
+Operator: Codex.
+
+Context:
+- Ming asked whether the system could be fixed and put into use immediately:
+  he wants to read, not keep asking Codex to wake the tool.
+
+Current state:
+- The menu-bar vocabulary app is running as a resident LaunchAgent.
+- The Studio reading backend is now also installed as a resident LaunchAgent
+  (`com.wordforge.studio`) and serves `http://127.0.0.1:8764`.
+- A native Studio reader window is open against that resident backend.
+- The menu-bar app has an `Open Studio Reader` item, so the 📖 menu becomes the
+  daily doorway into the reading UI.
+
+Files changed:
+- `install_studio_login_item.command` - installs `com.wordforge.studio` as a
+  launchd backend service with `WORDFORGE_NO_OPEN=1`.
+- `uninstall_studio_login_item.command` - removes the Studio backend service.
+- `wordforge/app.py` - adds `Open Studio Reader` to the menu-bar app.
+- `README.md` - documents the resident Studio backend and menu entry.
+
+Verification:
+```bash
+./.venv/bin/python -m py_compile wordforge/app.py wordforge/window.py wordforge/studio.py
+# pass
+
+bash -n install_studio_login_item.command uninstall_studio_login_item.command install_login_item.command run_native.command run_studio.command
+# pass
+
+printf '\n' | ./install_studio_login_item.command
+# wrote ~/Library/LaunchAgents/com.wordforge.studio.plist
+# Studio backend ready at http://127.0.0.1:8764
+
+old=$(pgrep -f -- '-m wordforge\.studio' | head -n1); kill "$old"; sleep 3; pgrep -f -- '-m wordforge\.studio' | head -n1
+# launchd restarted the backend with a new PID
+
+curl http://127.0.0.1:8764/api/translate/routes
+# HTTP 200
+
+curl http://127.0.0.1:8764/api/translate/corpus
+# 16 passages
+```
+
+Next action:
+- Use the native Studio window for reading now.
+- Later, add a local-model option for offline Ask/grading if true no-network
+  reading becomes the priority.
+
+Boundaries:
+- The resident backend keeps the local UI/corpus ready. Live Ask/grading still
+  depends on the configured provider unless the passage support is already
+  pre-baked.
+
 ## 2026-06-23 - Four Reading Routes + Passage Ask
 
 Operator: Codex.

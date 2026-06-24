@@ -209,6 +209,16 @@ def _fallback(word: dict[str, Any], drill: dict[str, Any], key: str, error: str 
     }
 
 
+def cached_or_fallback(word: dict[str, Any], drill: dict[str, Any]) -> dict[str, Any]:
+    key = _key(str(word.get("headword", "")), drill)
+    cached = _read_cache().get(key)
+    if cached:
+        cached = dict(cached)
+        cached["cached"] = True
+        return cached
+    return _fallback(word, drill, key, "not pre-baked yet")
+
+
 def build(word: dict[str, Any], drill: dict[str, Any]) -> dict[str, Any]:
     key = _key(str(word.get("headword", "")), drill)
     cached = _read_cache().get(key)

@@ -28,11 +28,13 @@ from typing import Any
 
 from . import (
     corpus,
+    deepgram_tts,
     drill_scaffold,
     drills,
     express,
     grounding,
     listening,
+    reading_packages,
     scheduler,
     store,
     translate,
@@ -274,6 +276,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     _json_response(self, {"error": f"passage not found: {pid}"}, 404)
                 else:
                     _json_response(self, passage)
+            elif u.path == "/api/reading/packages":
+                _json_response(self, reading_packages.list_packages())
+            elif u.path == "/api/reading/package/get":
+                pid = qs.get("id", [""])[0]
+                package = reading_packages.get_package(pid)
+                if package is None:
+                    _json_response(self, {"error": f"reading package not found: {pid}"}, 404)
+                else:
+                    _json_response(self, package)
+            elif u.path == "/api/tts/audio":
+                name = qs.get("file", [""])[0]
+                if not re.match(r"^[A-Za-z0-9_.-]+\.mp3$", name):
+                    raise ValueError("invalid audio file")
+                path = deepgram_tts.audio_dir() / name
+                if not path.exists():
+                    _json_response(self, {"error": f"audio not found: {name}"}, 404)
+                else:
+                    self._serve_audio(path)
             else:
                 self.send_error(404)
         except Exception as e:
@@ -297,7 +317,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 word = store.find_word(words, str(req.get("headword", "")))
                 if not word:
                     raise ValueError("word not found")
-                _json_response(self, drill_scaffold.build(word, req.get("drill") or {}))
+                drill = req.get("drill") or {}
+                if req.get("generate") is True:
+                    _json_response(self, drill_scaffold.build(word, drill))
+                else:
+                    _json_response(self, drill_scaffold.cached_or_fallback(word, drill))
             elif self.path == "/api/expression/ladder":
                 _json_response(self, express.ladder(str(req.get("thought", ""))))
             elif self.path == "/api/expression/grade":
@@ -373,6 +397,38 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     raise ValueError(f"passage not found: {pid}")
                 route = corpus.get_route(str(passage.get("route", passage.get("module", ""))))
                 _json_response(self, translate.ask_about_passage(passage, question, route))
+            elif self.path == "/api/reading/ask":
+                pid = str(req.get("package_id", ""))
+                question = str(req.get("question", "")).strip()
+                segment_index = int(req.get("segment_index", 0))
+                if not question:
+                    raise ValueError("empty question")
+                package = reading_packages.get_package(pid)
+                if package is None:
+                    raise ValueError(f"reading package not found: {pid}")
+                segments = package.get("segments", []) or []
+                segment = segments[segment_index] if 0 <= segment_index < len(segments) else {}
+                passage = {
+                    "title": package.get("title", ""),
+                    "source": package.get("source", ""),
+                    "why_selected": package.get("why_selected", ""),
+                    "text_en": segment.get("text_en") or package.get("text_en", ""),
+                }
+                route = corpus.get_route(str(package.get("route", "")))
+                _json_response(self, translate.ask_about_passage(passage, question, route))
+            elif self.path == "/api/tts/speak":
+                text = str(req.get("text", "")).strip()
+                if not text:
+                    raise ValueError("empty text")
+                slug = str(req.get("slug", "wordforge-tts"))
+                model = str(req.get("model", deepgram_tts.DEFAULT_MODEL))
+                _json_response(
+                    self,
+                    {
+                        "configured": deepgram_tts.configured(),
+                        "outputs": deepgram_tts.speak_to_files(text, slug=slug, model=model),
+                    },
+                )
             else:
                 self.send_error(404)
         except Exception as e:

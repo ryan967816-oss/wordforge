@@ -12,6 +12,8 @@ models/
 data/listening/
 data/drill_scaffolds.jsonl
 data/.drill_scaffolds.lock
+data/reading_audio/
+data/reading_packages/local/
 data/translate_attempts.jsonl
 data/translate_errors.jsonl
 data/corpus/local/

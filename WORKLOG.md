@@ -525,6 +525,70 @@ Verification:
 - The line answer area rendered 4 `.line-source` blocks; sentence 4 showed the
   correct source sentence inline.
 
+## 2026-06-24 - Reading Lab and offline scaffold boundary
+
+Operator: Codex.
+
+Context:
+- Ming wants the local/native WordForge UI to become a personal reading system:
+  pre-baked book passages, English kept as the object, Chinese component
+  scaffolds, Codex comments, selected-sentence questions, and optional TTS.
+- He also noticed Vocab was still effectively generating support live through
+  DS, which makes the UI feel slow and non-local.
+
+Changes:
+- Added `wordforge/reading_packages.py` plus
+  `scripts/bake_emerson_reading_packages.py`.
+- Baked the first public-domain Emerson `Self-Reliance` reading package into
+  `data/reading_packages/emerson_self_reliance.jsonl`.
+- Added Reader UI surface `Reading Lab · 预烤阅读包`:
+  package picker, sentence cards, sticky selected-source follow panel, English
+  sentence, English-order Chinese component scaffold, Codex comments, palette
+  chips, selected-sentence Ask, and Speak buttons.
+- Split Reading Lab into `Books / 想读的书` and `Lessons / 课文` shelves.
+- Reworked the reading body into a lyric-style scroll panel so long texts do not
+  require endless page scrolling. For packages with timestamps, the audio player
+  can drive the active sentence.
+- Added `scripts/bake_current_lesson_package.py`, which writes a local-only
+  lesson package from the current Listening Reader transcript into
+  `data/reading_packages/local/`.
+- Added safe Deepgram TTS utility module `wordforge/deepgram_tts.py` and
+  `scripts/deepgram_speak.py`. The browser never sees the key; audio is written
+  under gitignored `data/reading_audio/`.
+- Added Studio routes:
+  `/api/reading/packages`, `/api/reading/package/get`,
+  `/api/reading/ask`, `/api/tts/speak`, and `/api/tts/audio`.
+- Changed `/api/drill/scaffold` to read the Vocab scaffold cache by default and
+  only generate when explicitly called with `generate: true`. The Studio UI now
+  avoids live model calls during drilling.
+
+Verification:
+- `py_compile` passed for the new modules, scripts, and `wordforge/studio.py`.
+- The Studio page script parsed with Node.
+- Temporary Studio on `http://127.0.0.1:8769` returned four Emerson packages.
+- `emerson-self-reliance-consistency` returned four sentence segments; sentence
+  2 preserved the correct English-order Chinese source:
+  `对于 一致性，一个 伟大的灵魂 简直 没有什么 要做[...]`.
+- Chrome visual QA confirmed Reader renders the new Reading Lab, package picker,
+  sentence cards, and sticky selected-source panel.
+- Deepgram configuration currently reports false until a key is stored through
+  the hidden-input script. No key was written to files or logs.
+- Vocab scaffold endpoint on the restarted Studio returns a local fallback for
+  missing cache rows (`not pre-baked yet`) instead of making a live model call.
+- Vocab scaffold pre-bake completed all remaining rows:
+  `done: ok=578 fallback=0 failed=0`; follow-up dry-run reported
+  `missing scaffolds: 0`.
+- Restarted the resident Studio backend on `:8764`; it now returns four `book`
+  packages and one local `lesson` package. Restarted the native pywebview window.
+- Verified `data/reading_packages/local/`, `data/drill_scaffolds.jsonl`, and
+  `data/reading_audio/` are gitignored.
+
+Next:
+- Continue pre-baking Vocab scaffold rows with
+  `scripts/prebake_drill_scaffolds.py`; the cache file is local/gitignored.
+- Store a rotated Deepgram key with `scripts/set_deepgram_key.py`, then smoke one
+  short mp3 before using TTS from the UI.
+
 ## 2026-06-22 - P1 Studio Shell
 
 Operator: Codex.

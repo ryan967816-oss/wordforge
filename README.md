@@ -139,6 +139,11 @@ crowd the learning task. The mode selector lets you switch between
 `Scaffold / 脚手架` and `Blind test / 盲测`: learn with full Chinese support, then
 test retrieval without the support.
 
+Vocab does **not** make live model calls while you are drilling. It reads the
+local scaffold cache first. If a card has not been pre-baked yet, Studio shows a
+local fallback and tells you to run the pre-bake script instead of blocking the
+UI with an on-demand DS/Claude call.
+
 To pre-bake the Chinese scaffold cache for all existing multiple-choice vocab
 drills, run:
 
@@ -218,6 +223,71 @@ data/translate_errors.jsonl
 
 These are the learner-owned records of what went wrong: wrong sentences, missed
 words, and missed structures. They can later power review drills or analytics.
+
+## Reading Lab (预烤阅读器)
+
+The Reader tab now has a second surface above the old listening transcript:
+`Reading Lab · 预烤阅读包`. It is for book-like reading, not test drilling.
+
+The first baked package is Emerson's `Self-Reliance`, built from the committed
+public-domain corpus. Each passage renders:
+
+- the English source sentence;
+- Chinese-in-English-order component text with tense/aspect tags;
+- Codex close-reading comments;
+- sentence-bound palette chips;
+- separate shelves for `Books / 想读的书` and `Lessons / 课文`;
+- a lyric-style scroll panel so reading does not become one endless page;
+- a sticky selected-source panel so the original sentence does not disappear
+  while you ask or read below it;
+- `Ask selected sentence`, which answers in Chinese while anchoring attention to
+  an exact English phrase.
+
+Package data lives in:
+
+```text
+data/reading_packages/emerson_self_reliance.jsonl
+```
+
+Rebuild it from the committed corpus with:
+
+```bash
+./.venv/bin/python scripts/bake_emerson_reading_packages.py
+```
+
+Deepgram TTS is deliberately a small utility, not a Voice Agent integration.
+Once a rotated Deepgram key is stored with hidden input:
+
+```bash
+./.venv/bin/python scripts/set_deepgram_key.py
+```
+
+you can generate local mp3 files from any Codex/DS answer or passage comment:
+
+```bash
+echo "Trust thyself: every heart vibrates to that iron string." \
+  | ./.venv/bin/python scripts/deepgram_speak.py --slug emerson-trust
+```
+
+Generated audio is local-only under `data/reading_audio/` and is gitignored.
+
+Local lesson packages, such as the current Listening Reader lesson transcript,
+live under:
+
+```text
+data/reading_packages/local/
+```
+
+That directory is gitignored because it may contain textbook or classroom text.
+Generate the current Listening Reader lesson package with:
+
+```bash
+./.venv/bin/python scripts/bake_current_lesson_package.py --index 0
+```
+
+Lesson packages can carry audio timestamps, so the Reading Lab can behave like
+karaoke: play the local audio, highlight the current line, and keep the selected
+source sentence visible while you ask questions.
 
 There is also a no-browser terminal fallback that uses the same local corpus and
 does not call Claude unless you ask for final grading:

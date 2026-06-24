@@ -215,6 +215,36 @@
   .seg.active .time{color:var(--ice);}
   .seg .txt{font:400 15px/1.6 var(--sans); color:var(--frost-400);}
   .seg.active .txt{color:var(--frost-100);}
+  .reader-grid{display:grid; grid-template-columns:1fr; gap:14px;}
+  .reading-head{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .reading-title{display:flex; flex-direction:column; gap:3px;}
+  .reading-title b{font:600 18px var(--sans); color:var(--frost-100);}
+  .reading-title span{font:400 13px var(--sans); color:var(--frost-500);}
+  .reading-follow{position:sticky; top:0; z-index:20; margin:10px 0 14px; padding:12px 14px;
+    border:1px solid var(--edge-2); border-radius:7px; background:rgba(13,17,23,.90);
+    backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur); box-shadow:0 8px 26px rgba(0,0,0,.24);}
+  .reading-follow .label{font:600 11px var(--sans); letter-spacing:.06em; text-transform:uppercase; color:var(--ice); margin-bottom:5px;}
+  .reading-follow .en{font:500 16px/1.5 var(--serif); color:var(--frost-100);}
+  .reading-follow .zh{font:400 13px/1.45 var(--sans); color:var(--frost-400); margin-top:5px;}
+  .reading-seg{border:1px solid var(--edge); border-radius:7px; padding:14px; margin:10px 0; background:var(--glass-well);
+    cursor:pointer; transition:border-color var(--dur) var(--ease), background var(--dur) var(--ease);}
+  .reading-seg:hover{border-color:var(--edge-2); background:rgba(255,255,255,.045);}
+  .reading-seg.active{border-color:var(--ice); background:var(--glow);}
+  .reading-seg .idx{font:500 12px var(--mono); color:var(--frost-600);}
+  .reading-seg .en{margin:6px 0 8px; font:500 19px/1.5 var(--serif); color:var(--frost-100);}
+  .reading-seg .component{margin:0 0 8px; font:400 14px/1.55 var(--sans); color:var(--frost-300);}
+  .reading-seg .comment{border-left:2px solid var(--accent); padding-left:10px; color:var(--frost-400); font:400 13px/1.5 var(--sans);}
+  .reading-palette{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+  .reading-audio-list{display:grid; gap:8px; margin-top:10px;}
+  .reading-audio-list audio{margin-top:0;}
+  .reading-stage{display:grid; grid-template-columns:minmax(0,1fr); gap:12px;}
+  .reading-lyrics{max-height:52vh; overflow:auto; padding-right:4px; scroll-behavior:smooth;}
+  .reading-toolbar{display:grid; grid-template-columns:170px minmax(0,1fr) auto; gap:10px; align-items:end; margin-top:12px;}
+  .reading-audio{display:none; margin-top:12px;}
+  .reading-audio.show{display:block;}
+  @media (max-width:840px){
+    .reading-toolbar{grid-template-columns:1fr;}
+  }
 
   /* ---------- lists (stats / writing) ---------- */
   .list .item{display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -374,8 +404,50 @@
 
         <!-- READER -->
         <section id="reader" class="view">
-          <h1>Listening Reader</h1>
+          <h1>Reader</h1>
+          <div class="reader-grid">
           <div class="card">
+            <div class="reading-head">
+              <div class="reading-title">
+                <b>Reading Lab · 预烤阅读包</b>
+                <span>English source stays visible; scaffold and comments stay sentence-bound.</span>
+              </div>
+              <button class="btn secondary" id="readingReloadBtn" onclick="loadReadingPackages()">Reload</button>
+            </div>
+            <div class="reading-toolbar">
+              <label>
+                <div class="eyebrow" style="margin-bottom:8px">Shelf</div>
+                <select id="readingKindSelect" onchange="setReadingKind(this.value)">
+                  <option value="book">Books / 想读的书</option>
+                  <option value="lesson">Lessons / 课文</option>
+                </select>
+              </label>
+              <label>
+                <div class="eyebrow" style="margin-bottom:8px">Pick text</div>
+                <select id="readingPackageSelect"></select>
+              </label>
+              <button class="btn" id="readingLoadBtn" onclick="loadReadingPackage()">Load</button>
+            </div>
+            <audio id="readingAudio" class="reading-audio" controls preload="none"></audio>
+            <div id="readingStatus" class="status"></div>
+          </div>
+          <div id="readingPackageMeta"></div>
+          <div id="readingFollow" class="reading-follow" style="display:none"></div>
+          <div id="readingPackageOut"></div>
+          <div id="readingAskBox" class="card" style="display:none">
+            <h2>Ask selected sentence / 问选中的句子</h2>
+            <div id="readingAskContext" class="muted" style="font-size:13px;margin-bottom:10px"></div>
+            <textarea id="readingQuestion" rows="2" placeholder="这句话在上下文里到底在说什么？为什么这个词有力量？"></textarea>
+            <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn secondary" id="readingAskBtn" onclick="askReadingSegment()">Ask</button>
+              <button class="btn secondary" id="readingSpeakBtn" onclick="speakReadingSelection()">Speak comment</button>
+              <span class="muted" style="font-size:13px">TTS reads generated mp3 locally when Deepgram is configured.</span>
+            </div>
+            <div id="readingAskOut"></div>
+            <div id="readingAudioList" class="reading-audio-list"></div>
+          </div>
+          <div class="card">
+            <h2>Listening transcript reader</h2>
             <div class="row">
               <select class="grow" id="audioFile"></select>
               <button class="btn secondary" onclick="openPdfFolder()">Open folder</button>
@@ -384,6 +456,7 @@
             <div id="readerStatus" class="status"></div>
           </div>
           <div class="card"><h2>Transcript — click a line to seek</h2><div id="transcript"></div></div>
+          </div>
         </section>
 
         <!-- WRITING -->
@@ -482,6 +555,8 @@
 <script>
 const $ = (id) => document.getElementById(id);
 let currentThought = "", currentDrill = null, currentSegs = [], vocabSupportMode = "scaffold";
+let readingPackages = [], activeReadingPackage = null, activeReadingSegment = 0, readingKind = "book";
+let lastReadingAnswerSpeak = "";
 
 function esc(t){return String(t ?? "").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function setBusy(id,busy){const el=$(id); if(!el)return; el.disabled=busy;
@@ -558,7 +633,7 @@ async function loadDrill(){
         <p class="en">${esc(d.drill.prompt)}</p>
         <div id="drillPromptZh"></div>
       </div>
-      ${scaffoldOn?`<div id="drillSupport" class="drill-support"><span class="status think">Loading cached scaffold…</span></div>`:""}
+      ${scaffoldOn?`<div id="drillSupport" class="drill-support"><span class="status think">Checking local scaffold cache…</span></div>`:""}
       <div id="drillOptions">${renderDrillOptions(d)}</div>
     </div>
     <div id="drillResult"></div>`;
@@ -597,7 +672,7 @@ function renderDrillScaffold(d){
       <div class="mini"><b>空格要填什么</b><br>${esc(s.blank_role_zh||"")}</div>
     </div>
     ${s.decision_rule_zh?`<div class="decision-rule"><b>选择规则</b><br>${esc(s.decision_rule_zh)}</div>`:""}
-    ${s.fallback&&s.error?`<p class="muted" style="font-size:12px;margin:8px 0 0">${esc(s.error)}</p>`:""}`;
+    ${s.fallback&&s.error?`<p class="muted" style="font-size:12px;margin:8px 0 0">local cache: ${esc(s.error)}. Run prebake to fill this card; no live model call was made.</p>`:""}`;
   $("drillOptions").innerHTML = renderDrillOptions(d);
 }
 async function loadDrillScaffold(d){
@@ -687,6 +762,198 @@ $("audio").ontimeupdate=()=>{
 };
 async function openPdfFolder(){try{await api("/api/listening/pdf?i="+$("audioFile").value);}catch(e){}}
 
+async function loadReadingPackages(){
+  if(!$("readingPackageSelect")) return;
+  $("readingStatus").className="status think";
+  $("readingStatus").textContent="Loading reading packages…";
+  setBusy("readingReloadBtn", true);
+  try{
+    readingPackages = await api("/api/reading/packages");
+    renderReadingPackageOptions();
+    $("readingStatus").className="status";
+    $("readingStatus").textContent = readingPackages.length ? `${readingPackages.length} package(s) ready.` : "No baked packages yet.";
+    if($("readingPackageSelect").value && !activeReadingPackage) await loadReadingPackage();
+  }catch(e){
+    $("readingStatus").className="status err";
+    $("readingStatus").textContent=e.message;
+  }finally{
+    setBusy("readingReloadBtn", false);
+  }
+}
+function setReadingKind(kind){
+  readingKind = kind === "lesson" ? "lesson" : "book";
+  try{ localStorage.setItem("wf-reading-kind", readingKind); }catch(e){}
+  renderReadingPackageOptions();
+  activeReadingPackage=null;
+  $("readingPackageMeta").innerHTML="";
+  $("readingPackageOut").innerHTML="";
+  $("readingFollow").style.display="none";
+  $("readingAskBox").style.display="none";
+  if($("readingPackageSelect").value) loadReadingPackage().catch(()=>{});
+}
+function renderReadingPackageOptions(){
+  const sel=$("readingPackageSelect");
+  if(!sel) return;
+  const filtered=readingPackages.filter(p=>(p.category||"book")===readingKind);
+  const empty=readingKind==="lesson" ? "No local lesson packages yet" : "No book packages yet";
+  sel.innerHTML = filtered.length
+    ? filtered.map(p=>`<option value="${esc(p.id)}">${esc(p.title)} — ${esc(p.segment_count)} lines${p.has_audio?" · audio":""}</option>`).join("")
+    : `<option value="">${esc(empty)}</option>`;
+}
+async function loadReadingPackage(){
+  const id=$("readingPackageSelect")?.value;
+  if(!id) return;
+  $("readingStatus").className="status think";
+  $("readingStatus").textContent="Opening reading package…";
+  setBusy("readingLoadBtn", true);
+  try{
+    activeReadingPackage = await api("/api/reading/package/get?id="+encodeURIComponent(id));
+    activeReadingSegment = 0;
+    renderReadingPackage();
+    $("readingStatus").className="status";
+    $("readingStatus").textContent="";
+  }catch(e){
+    $("readingStatus").className="status err";
+    $("readingStatus").textContent=e.message;
+  }finally{
+    setBusy("readingLoadBtn", false);
+  }
+}
+function renderReadingPackage(){
+  const pkg=activeReadingPackage;
+  if(!pkg) return;
+  const structures=(pkg.target_structures||[]).map(x=>`<span class="pill">${esc(x)}</span>`).join(" ");
+  const glosses=(pkg.glosses||[]).map(g=>`<span class="pill" title="${esc(g.hint||"")}">${esc(g.word)} = ${esc(g.chinese)}</span>`).join(" ");
+  $("readingPackageMeta").innerHTML=`<div class="card">
+    <div class="reading-title">
+      <b>${esc(pkg.title)}</b>
+      <span>${esc(pkg.book || pkg.source || "")}</span>
+    </div>
+    ${pkg.codex_comment_zh?`<p class="prompt" style="margin-top:10px">${esc(pkg.codex_comment_zh)}</p>`:""}
+    ${pkg.codex_comment_en?`<p class="muted" style="font-size:13px">${esc(pkg.codex_comment_en)}</p>`:""}
+    ${structures?`<div class="hintline" style="margin-top:12px"><b>structures</b>${structures}</div>`:""}
+    ${glosses?`<div class="hintline"><b>words</b>${glosses}</div>`:""}
+  </div>`;
+  const audio=$("readingAudio");
+  if(audio){
+    if(pkg.audio_index!==undefined && pkg.audio_index!==null){
+      audio.src="/api/listening/audio?i="+encodeURIComponent(pkg.audio_index);
+      audio.classList.add("show");
+    }else if(pkg.audio_url){
+      audio.src=pkg.audio_url;
+      audio.classList.add("show");
+    }else{
+      audio.removeAttribute("src");
+      audio.classList.remove("show");
+    }
+  }
+  $("readingPackageOut").innerHTML=`<div class="card reading-stage">
+    <h2>Lyric scroll / 当前句滚动</h2>
+    <div class="reading-lyrics" id="readingLyrics">${(pkg.segments||[]).map((s,i)=>renderReadingSegment(s,i)).join("")}</div>
+  </div>`;
+  $("readingAskBox").style.display="block";
+  selectReadingSegment(0);
+}
+function renderReadingSegment(s,i){
+  const palette=(s.palette||[]).map(p=>`<span class="pill" title="${esc(p.usage||"")}">${esc(p.english)} · ${esc(p.chinese)}</span>`).join("");
+  return `<div class="reading-seg" id="readingSeg${i}" onclick="selectReadingSegment(${i})">
+    <div class="idx">Sentence ${i+1}</div>
+    <p class="en">${esc(s.text_en||"")}</p>
+    ${s.component_zh?`<p class="component">${esc(s.component_zh)}</p>`:""}
+    ${s.codex_comment?`<div class="comment">${esc(s.codex_comment)}</div>`:""}
+    ${palette?`<div class="reading-palette">${palette}</div>`:""}
+  </div>`;
+}
+function selectReadingSegment(i, fromAudio=false){
+  const pkg=activeReadingPackage;
+  if(!pkg) return;
+  const segs=pkg.segments||[];
+  if(!segs.length) return;
+  activeReadingSegment=Math.max(0, Math.min(i, segs.length-1));
+  document.querySelectorAll(".reading-seg").forEach((el,k)=>el.classList.toggle("active", k===activeReadingSegment));
+  const s=segs[activeReadingSegment];
+  const activeEl=$("readingSeg"+activeReadingSegment);
+  if(activeEl) activeEl.scrollIntoView({block:"center", behavior:fromAudio?"auto":"smooth"});
+  const audio=$("readingAudio");
+  if(!fromAudio && audio && audio.src && s.start_ms!==undefined){
+    audio.currentTime=(Number(s.start_ms)||0)/1000;
+  }
+  $("readingFollow").innerHTML=`<div class="label">Selected source follows / 选句跟随</div>
+    <div class="en">${esc(s.text_en||"")}</div>
+    ${s.component_zh?`<div class="zh">${esc(s.component_zh)}</div>`:""}`;
+  $("readingFollow").style.display="block";
+  $("readingAskContext").textContent=`${pkg.title} · sentence ${activeReadingSegment+1}`;
+}
+function syncReadingAudioTime(){
+  const pkg=activeReadingPackage, audio=$("readingAudio");
+  if(!pkg || !audio || !audio.src) return;
+  const t=audio.currentTime*1000;
+  const segs=pkg.segments||[];
+  const k=segs.findIndex(s=>t>=(Number(s.start_ms)||0) && t<(Number(s.end_ms)||0));
+  if(k>=0 && k!==activeReadingSegment) selectReadingSegment(k, true);
+}
+function selectedReadingSpeakText(){
+  const pkg=activeReadingPackage;
+  const s=(pkg?.segments||[])[activeReadingSegment] || {};
+  return [
+    s.text_en || "",
+    s.component_zh ? "中文语序提示：" + s.component_zh : "",
+    s.codex_comment ? "Codex comment: " + s.codex_comment : "",
+  ].filter(Boolean).join(" ");
+}
+async function speakText(text, slug, targetId){
+  if(!text.trim()) return;
+  const target=$(targetId);
+  if(target) target.innerHTML=`<div class="status think">Generating audio…</div>`;
+  try{
+    const d=await api("/api/tts/speak",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text, slug})});
+    const html=(d.outputs||[]).map(o=>`<audio controls preload="none" src="/api/tts/audio?file=${encodeURIComponent(o.file)}"></audio>`).join("");
+    if(target) target.innerHTML=html || `<div class="muted">No audio generated.</div>`;
+  }catch(e){
+    if(target) target.innerHTML=`<div class="feedback err"><div class="body">${esc(e.message)}</div></div>`;
+  }
+}
+async function speakReadingSelection(){
+  const pkg=activeReadingPackage;
+  if(!pkg) return;
+  await speakText(selectedReadingSpeakText(), `${pkg.id}-sentence-${activeReadingSegment+1}`, "readingAudioList");
+}
+async function speakReadingAskAnswer(){
+  const pkg=activeReadingPackage;
+  if(!pkg || !lastReadingAnswerSpeak) return;
+  await speakText(lastReadingAnswerSpeak, `${pkg.id}-ask-${activeReadingSegment+1}`, "readingAudioList");
+}
+async function askReadingSegment(){
+  const pkg=activeReadingPackage;
+  if(!pkg) return;
+  const q=($("readingQuestion").value||"").trim();
+  if(!q) return;
+  $("readingAskOut").innerHTML=`<div class="status think" style="margin-top:10px">Reading selected sentence…</div>`;
+  setBusy("readingAskBtn",true);
+  try{
+    const d=await api("/api/reading/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      package_id:pkg.id,
+      segment_index:activeReadingSegment,
+      question:q
+    })});
+    const notices=(d.what_to_notice||[]).map(x=>`<li>${esc(x)}</li>`).join("");
+    const speakPayload=[d.answer_zh||"", d.english_anchor?`English anchor: ${d.english_anchor}`:"", ...(d.what_to_notice||[])].filter(Boolean).join(" ");
+    lastReadingAnswerSpeak=speakPayload;
+    $("readingAskOut").innerHTML=`<div class="ask-answer">
+      <div class="eyebrow" style="color:var(--ice)">Answer anchored in selected English</div>
+      <p>${esc(d.answer_zh||"")}</p>
+      ${d.english_anchor?`<p><b>English anchor:</b> <span class="serif-lead" style="font-size:17px">${esc(d.english_anchor)}</span></p>`:""}
+      ${notices?`<p><b>Notice:</b></p><ul>${notices}</ul>`:""}
+      ${d.next_question?`<p><b>Next question:</b> ${esc(d.next_question)}</p>`:""}
+      <div style="margin-top:10px"><button class="btn secondary" onclick="speakReadingAskAnswer()">Speak this answer</button></div>
+    </div>`;
+  }catch(e){
+    $("readingAskOut").innerHTML=`<div class="feedback err" style="margin-top:10px"><div class="body">${esc(e.message)}</div></div>`;
+  }finally{
+    setBusy("readingAskBtn",false);
+  }
+}
+
 async function loadPrompts(){
   const prompts=await api("/api/writing/prompts");
   $("promptSelect").innerHTML=prompts.map(p=>`<option value="${esc(p.id)}">${esc(p.id)} — ${esc(p.preview)}</option>`).join("");
@@ -722,9 +989,12 @@ $("tlMin").onclick=()=>{ if(nativeReady() && pywebview.api.minimize) pywebview.a
 /* ---- boot ---- */
 (function boot(){
   initVocabSupportMode();
+  try{ readingKind = localStorage.getItem("wf-reading-kind") || "book"; }catch(e){}
+  if($("readingKindSelect")) $("readingKindSelect").value = readingKind;
+  if($("readingAudio")) $("readingAudio").ontimeupdate = syncReadingAudioTime;
   const saved = (()=>{try{return localStorage.getItem("wf-view");}catch(e){return null;}})();
   if(saved) showView(saved);
-  loadPrompts().catch(()=>{}); loadAudioList().catch(()=>{}); refreshAll().catch(()=>{});
+  loadPrompts().catch(()=>{}); loadAudioList().catch(()=>{}); loadReadingPackages().catch(()=>{}); refreshAll().catch(()=>{});
 })();
 
 /* ============================================================
